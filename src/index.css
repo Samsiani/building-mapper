@@ -393,7 +393,6 @@ html, body, #root {
 }
 
 .pv-canvas-wrapper {
-  position: relative;
   width: 100%;
   height: 100%;
   background: var(--pv-surface);

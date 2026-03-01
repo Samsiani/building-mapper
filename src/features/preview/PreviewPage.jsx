@@ -201,17 +201,10 @@ export default function PreviewPage() {
       </header>
 
       <main className="pv-canvas-area pv-canvas-area--with-sidebar">
-        <div
-          className="pv-canvas-wrapper"
-          style={backgroundImage ? {
-            backgroundImage: `url(${backgroundImage})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          } : undefined}
-        >
+        <div className="pv-canvas-wrapper">
           <PreviewBuilding
             entities={entities}
-            hasBackground={!!backgroundImage}
+            backgroundImage={backgroundImage}
             proceduralConfig={proceduralConfig}
             onHover={(entity, pos) => { setHoveredEntity(entity); setTooltipPos(pos); }}
             onLeave={() => setHoveredEntity(null)}
