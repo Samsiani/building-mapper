@@ -6,6 +6,7 @@ import { useCommandStore } from '../../stores/commandStore';
 import { useEditorStore } from '../../stores/editorStore';
 import { useProjectStore } from '../../stores/projectStore';
 import { useToastStore } from '../../stores/toastStore';
+import { NODE_TYPES, canDrillInto } from '../../utils/nodeTypes';
 import { fuzzyMatch, fuzzyScore } from '../../utils/fuzzySearch';
 import CommandItem from './CommandItem';
 
@@ -33,67 +34,62 @@ export default function CommandPalette() {
       { id: 'undo', label: 'Undo', shortcut: 'Cmd+Z', category: 'Edit', action: () => { useProjectStore.getState().undo(); useToastStore.getState().show('Undone', 'info', 2000); } },
       { id: 'redo', label: 'Redo', shortcut: 'Cmd+Shift+Z', category: 'Edit', action: () => { useProjectStore.getState().redo(); useToastStore.getState().show('Redone', 'info', 2000); } },
       { id: 'preview', label: 'Open Preview', category: 'Navigation', action: () => window.open('/preview', '_blank') },
-      { id: 'nav-global', label: 'Go to Global View', shortcut: 'Esc', category: 'Navigation', action: () => useEditorStore.getState().navigateTo('global') },
+      { id: 'nav-root', label: 'Go to Root View', shortcut: 'Esc', category: 'Navigation', action: () => useEditorStore.getState().navigateToRoot() },
       { id: 'nav-up', label: 'Navigate Up', shortcut: 'Esc', category: 'Navigation', action: () => useEditorStore.getState().navigateUp() },
     ];
     useCommandStore.getState().registerCommands(cmds);
   }, []);
 
-  // Add dynamic entity search commands
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
-  const units = useProjectStore((s) => s.units);
+  // Add dynamic entity search commands from flat nodes
+  const nodes = useProjectStore((s) => s.nodes);
 
   const entityCommands = useMemo(() => {
     const cmds = [];
 
-    // Building navigation commands
-    buildings.forEach((b) => {
-      cmds.push({
-        id: `building-${b.id}`,
-        label: b.name,
-        category: 'Buildings',
-        keywords: `${b.name} building`,
-        action: () => useEditorStore.getState().navigateToBuilding(b.id),
-      });
-    });
+    // Build ancestor path label for a node
+    const getPathLabel = (node) => {
+      const parts = [];
+      let current = node;
+      while (current.parentId !== null) {
+        const parent = nodes.find((n) => n.id === current.parentId);
+        if (!parent) break;
+        parts.unshift(parent.name);
+        current = parent;
+      }
+      return parts.length > 0 ? `${parts.join(' > ')} > ${node.name}` : node.name;
+    };
 
-    // Floor navigation commands
-    floors.forEach((f) => {
-      const building = buildings.find((b) => b.id === f.buildingId);
-      cmds.push({
-        id: `floor-${f.id}`,
-        label: `${building?.name || 'Building'} > ${f.name}`,
-        category: 'Floors',
-        keywords: `${f.name} floor ${building?.name || ''}`,
-        action: () => useEditorStore.getState().navigateToFloor(f.buildingId, f.id),
-      });
-    });
+    nodes.forEach((node) => {
+      const typeDef = NODE_TYPES[node.type];
+      if (!typeDef) return;
 
-    // Unit search commands
-    units.forEach((u) => {
+      const pathLabel = getPathLabel(node);
+      const keywords = `${node.name} ${typeDef.label} ${node.status || ''} ${node.orientation || ''}`.trim();
+
       cmds.push({
-        id: `unit-${u.id}`,
-        label: u.name,
-        category: 'Units',
-        keywords: `${u.name} ${u.status} ${u.orientation}`,
+        id: `node-${node.id}`,
+        label: pathLabel,
+        category: typeDef.labelPlural,
+        keywords,
         action: () => {
-          // Navigate to the unit's floor first, then select
-          if (u.floorId) {
-            const floor = floors.find((f) => f.id === u.floorId);
-            if (floor) {
-              useEditorStore.getState().navigateToFloor(floor.buildingId, floor.id);
-              setTimeout(() => useEditorStore.getState().selectUnit(u.id), 50);
-              return;
+          if (canDrillInto(node.type)) {
+            // Navigate into drillable nodes
+            useEditorStore.getState().navigateInto(node.id);
+          } else {
+            // Navigate to parent, then select node
+            if (node.parentId !== null) {
+              useEditorStore.getState().navigateInto(node.parentId);
+              setTimeout(() => useEditorStore.getState().selectNode(node.id), 50);
+            } else {
+              useEditorStore.getState().selectNode(node.id);
             }
           }
-          useEditorStore.getState().selectUnit(u.id);
         },
       });
     });
 
     return cmds;
-  }, [buildings, floors, units]);
+  }, [nodes]);
 
   const allCommands = useMemo(() => [...registeredCommands, ...entityCommands], [registeredCommands, entityCommands]);
 
@@ -165,7 +161,7 @@ export default function CommandPalette() {
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Search commands, buildings, floors, units..."
+                placeholder="Search commands and entities..."
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setActiveIndex(0); }}
                 onKeyDown={handleKeyDown}

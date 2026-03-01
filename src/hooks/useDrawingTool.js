@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useToastStore } from '../stores/toastStore';
+import { getAllowedChildTypes, NODE_TYPES } from '../utils/nodeTypes';
+import { useProjectStore } from '../stores/projectStore';
 
 export function useDrawingTool() {
   const drawingPoints = useEditorStore((s) => s.drawingPoints);
@@ -31,25 +33,30 @@ export function useDrawingTool() {
 
     const { currentView } = useEditorStore.getState();
     const points = [...current];
+    const parentId = currentView.parentId;
 
-    // Determine what entity type is being created based on current view level
-    let type, parentId;
-    if (currentView.level === 'global') {
-      type = 'building';
-      parentId = null;
-    } else if (currentView.level === 'building') {
-      type = 'floor';
-      parentId = currentView.buildingId;
-    } else {
-      type = 'unit';
-      parentId = currentView.floorId;
+    // Determine what type of parent we're inside
+    let parentType = null;
+    if (parentId !== null) {
+      const parentNode = useProjectStore.getState().nodes.find((n) => n.id === parentId);
+      parentType = parentNode?.type || null;
     }
 
-    setDrawingPoints([]);
-    useEditorStore.getState().setPendingCreation({ type, points, parentId });
+    const allowedTypes = getAllowedChildTypes(parentType);
 
-    const label = type.charAt(0).toUpperCase() + type.slice(1);
-    useToastStore.getState().show(`${label} polygon drawn — fill in the details`, 'info');
+    setDrawingPoints([]);
+
+    if (allowedTypes.length === 1) {
+      // Auto-select the only allowed type
+      const type = allowedTypes[0];
+      useEditorStore.getState().setPendingCreation({ type, points, parentId });
+      const label = NODE_TYPES[type]?.label || type;
+      useToastStore.getState().show(`${label} polygon drawn — fill in the details`, 'info');
+    } else if (allowedTypes.length > 1) {
+      // Show type picker in sidebar (set type to null, sidebar will handle it)
+      useEditorStore.getState().setPendingCreation({ type: null, points, parentId });
+      useToastStore.getState().show('Polygon drawn — choose entity type', 'info');
+    }
   }, [setDrawingPoints]);
 
   const cancelDrawing = useCallback(() => {

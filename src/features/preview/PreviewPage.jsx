@@ -1,33 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useProjectStore } from '../../stores/projectStore';
-import { STATUS } from '../../utils/constants';
-import PreviewNavbar from './PreviewNavbar';
-import PreviewHero from './PreviewHero';
+import { NODE_TYPES, canDrillInto } from '../../utils/nodeTypes';
 import PreviewBuilding from './PreviewBuilding';
 import PreviewLegend from './PreviewLegend';
 import PreviewStats from './PreviewStats';
-import PreviewFooter from './PreviewFooter';
 import PreviewTooltip from './PreviewTooltip';
 import UnitDetailModal from './UnitDetailModal';
 import NoDataFallback from './NoDataFallback';
 import PreviewBreadcrumbs from './PreviewBreadcrumbs';
+import ConfirmDialog from './ConfirmDialog';
 
 export default function PreviewPage() {
   const config = useProjectStore((s) => s.projectConfig);
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
-  const units = useProjectStore((s) => s.units);
+  const nodes = useProjectStore((s) => s.nodes);
+  const removeNode = useProjectStore((s) => s.removeNode);
+  const updateProjectConfig = useProjectStore((s) => s.updateProjectConfig);
 
-  const [hoveredUnit, setHoveredUnit] = useState(null);
+  const [hoveredEntity, setHoveredEntity] = useState(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
-  // Local drill-down navigation
-  const [previewView, setPreviewView] = useState({
-    level: 'global', buildingId: null, floorId: null,
-  });
+  // parentId-based navigation
+  const [previewView, setPreviewView] = useState({ parentId: null });
 
-  // Backwards compat — config shape for navbar/hero/footer
   const displayConfig = {
     buildingName: config.projectName,
     companyName: config.companyName,
@@ -41,119 +37,187 @@ export default function PreviewPage() {
     document.title = `${config.projectName || 'Preview'} — ${config.companyName || 'Real Estate'}`;
   }, [config]);
 
-  // If there's only 1 building and no building polygons, auto-drill into it
-  useEffect(() => {
-    if (previewView.level === 'global' && buildings.length === 1 && buildings[0].points.length < 3) {
-      setPreviewView({ level: 'building', buildingId: buildings[0].id, floorId: null });
-    }
-  }, []);
+  // Current entities = children of current parentId
+  const entities = useMemo(
+    () => nodes.filter((n) => n.parentId === previewView.parentId),
+    [nodes, previewView.parentId]
+  );
 
-  // Get entities for current preview level
-  let entities = [];
-  let entityType = 'building';
+  // Background determination
   let backgroundImage = null;
   let proceduralConfig = null;
 
-  if (previewView.level === 'global') {
-    entities = buildings;
-    entityType = 'building';
-  } else if (previewView.level === 'building') {
-    const building = buildings.find((b) => b.id === previewView.buildingId);
-    entities = floors.filter((f) => f.buildingId === previewView.buildingId);
-    entityType = 'floor';
-    if (building?.backgroundImage) {
-      backgroundImage = building.backgroundImage;
-    } else if (building) {
-      proceduralConfig = {
-        buildingName: building.name,
-        floors: building.floors || 6,
-        unitsPerFloor: building.unitsPerFloor || 4,
-        companyName: config.companyName,
-      };
+  if (previewView.parentId === null) {
+    backgroundImage = config.siteBackgroundImage || null;
+  } else {
+    const parentNode = nodes.find((n) => n.id === previewView.parentId);
+    if (parentNode) {
+      const typeDef = NODE_TYPES[parentNode.type];
+      if (parentNode.backgroundImage) {
+        backgroundImage = parentNode.backgroundImage;
+      } else if (typeDef?.hasProceduralFallback) {
+        proceduralConfig = {
+          buildingName: parentNode.name,
+          floors: parentNode.floors || 6,
+          unitsPerFloor: parentNode.unitsPerFloor || 4,
+          companyName: config.companyName,
+        };
+      }
     }
-  } else if (previewView.level === 'floor') {
-    entities = units.filter((u) => u.floorId === previewView.floorId);
-    entityType = 'unit';
-    const floor = floors.find((f) => f.id === previewView.floorId);
-    backgroundImage = floor?.backgroundImage || null;
   }
 
   const handleEntityClick = (entity) => {
-    if (entityType === 'building') {
-      setHoveredUnit(null);
-      setPreviewView({ level: 'building', buildingId: entity.id, floorId: null });
-    } else if (entityType === 'floor') {
-      setHoveredUnit(null);
-      setPreviewView({ level: 'floor', buildingId: previewView.buildingId, floorId: entity.id });
-    } else {
+    if (canDrillInto(entity.type)) {
+      setHoveredEntity(null);
+      setPreviewView({ parentId: entity.id });
+    } else if (NODE_TYPES[entity.type]?.hasStatus) {
       setSelectedUnit(entity);
     }
   };
 
-  const handleNavigate = (level, buildingId = null, floorId = null) => {
-    setPreviewView({ level, buildingId, floorId });
-    setHoveredUnit(null);
+  const handleDeleteRequest = useCallback((entity, pos) => {
+    setConfirmDelete({ entity, pos });
+    setHoveredEntity(null);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!confirmDelete) return;
+    removeNode(confirmDelete.entity.id);
+    setConfirmDelete(null);
+  }, [confirmDelete, removeNode]);
+
+  const handleNavigate = (parentId) => {
+    setPreviewView({ parentId });
+    setHoveredEntity(null);
   };
 
-  // Stats for current level's units
-  const currentUnits = previewView.level === 'floor'
-    ? entities
-    : previewView.level === 'building'
-      ? units.filter((u) => floors.filter((f) => f.buildingId === previewView.buildingId).some((f) => f.id === u.floorId))
-      : units;
+  // Site photo upload
+  const fileInputRef = useRef(null);
+  const handleSiteImageUpload = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateProjectConfig({ siteBackgroundImage: reader.result });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, [updateProjectConfig]);
+
+  const handleRemoveSiteImage = useCallback(() => {
+    updateProjectConfig({ siteBackgroundImage: null });
+  }, [updateProjectConfig]);
+
+  // Stats — collect all apartment descendants under current view
+  const getApartmentDescendants = useCallback((parentId) => {
+    const result = [];
+    const queue = [parentId];
+    while (queue.length > 0) {
+      const current = queue.shift();
+      for (const n of nodes) {
+        if (n.parentId === current) {
+          if (NODE_TYPES[n.type]?.hasStatus) result.push(n);
+          if (canDrillInto(n.type)) queue.push(n.id);
+        }
+      }
+    }
+    return result;
+  }, [nodes]);
+
+  const currentApartments = previewView.parentId === null
+    ? nodes.filter((n) => NODE_TYPES[n.type]?.hasStatus)
+    : (() => {
+        // Direct hasStatus children + descendants
+        const direct = entities.filter((n) => NODE_TYPES[n.type]?.hasStatus);
+        const deeper = entities.filter((n) => canDrillInto(n.type)).flatMap((n) => getApartmentDescendants(n.id));
+        return [...direct, ...deeper];
+      })();
 
   const stats = {
-    total: currentUnits.length,
-    available: currentUnits.filter((u) => u.status === 'available').length,
-    reserved: currentUnits.filter((u) => u.status === 'reserved').length,
+    total: currentApartments.length,
+    available: currentApartments.filter((u) => u.status === 'available').length,
+    reserved: currentApartments.filter((u) => u.status === 'reserved').length,
+    sold: currentApartments.filter((u) => u.status === 'sold').length,
     minPrice: (() => {
-      const prices = currentUnits.filter((u) => u.status === 'available' && u.price > 0).map((u) => u.price);
+      const prices = currentApartments.filter((u) => u.status === 'available' && u.price > 0).map((u) => u.price);
       return prices.length ? Math.min(...prices) : 0;
     })(),
   };
 
-  if (!buildings.length && !units.length) {
+  if (nodes.length === 0) {
     return (
-      <div className="min-h-screen" style={{ background: 'var(--pv-bg)', fontFamily: 'var(--font-sans)' }}>
-        <PreviewNavbar config={displayConfig} />
+      <div className="pv-page">
         <NoDataFallback />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen" style={{ background: 'var(--pv-bg)', fontFamily: 'var(--font-sans)', color: 'var(--pv-text)' }}>
-      <PreviewNavbar config={displayConfig} />
-      <PreviewHero config={displayConfig} />
+  // Info for topbar
+  const parentNode = previewView.parentId !== null ? nodes.find((n) => n.id === previewView.parentId) : null;
+  const hasStatusEntities = entities.some((n) => NODE_TYPES[n.type]?.hasStatus);
 
-      <section className="max-w-[900px] mx-auto px-8 pb-8">
-        <PreviewBreadcrumbs
-          previewView={previewView}
-          buildings={buildings}
-          floors={floors}
-          onNavigate={handleNavigate}
-        />
-        <div className="bg-[var(--pv-surface)] rounded-[var(--pv-radius)] shadow-[var(--pv-shadow-lg)] overflow-hidden relative">
+  return (
+    <div className="pv-page">
+      <header className="pv-topbar">
+        <div className="pv-header-left">
+          <PreviewBreadcrumbs
+            previewView={previewView}
+            nodes={nodes}
+            onNavigate={handleNavigate}
+          />
+          {parentNode && (
+            <>
+              <span className="pv-topbar-sep" />
+              <span className="pv-topbar-info">
+                {parentNode.name} &middot; {entities.length} item{entities.length !== 1 ? 's' : ''}
+              </span>
+            </>
+          )}
+        </div>
+        <div className="pv-header-right">
+          {hasStatusEntities && <PreviewLegend />}
+          {previewView.parentId === null && (
+            <>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="pv-hidden-input"
+                onChange={handleSiteImageUpload}
+              />
+              {config.siteBackgroundImage ? (
+                <button className="pv-upload-btn pv-upload-btn--remove" onClick={handleRemoveSiteImage}>
+                  Remove Photo
+                </button>
+              ) : (
+                <button className="pv-upload-btn" onClick={() => fileInputRef.current?.click()}>
+                  Upload Site Photo
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      </header>
+
+      <main className="pv-canvas-area">
+        <div className="pv-canvas-wrapper">
           <PreviewBuilding
             entities={entities}
-            entityType={entityType}
             backgroundImage={backgroundImage}
             proceduralConfig={proceduralConfig}
-            onHover={(entity, pos) => { setHoveredUnit(entity); setTooltipPos(pos); }}
-            onLeave={() => setHoveredUnit(null)}
+            onHover={(entity, pos) => { setHoveredEntity(entity); setTooltipPos(pos); }}
+            onLeave={() => setHoveredEntity(null)}
             onClick={handleEntityClick}
+            onDelete={handleDeleteRequest}
           />
-          {entityType === 'unit' && <PreviewLegend />}
         </div>
-      </section>
+      </main>
 
       <PreviewStats stats={stats} currency={config.currency} />
-      <PreviewFooter config={displayConfig} />
 
       <PreviewTooltip
-        unit={entityType === 'unit' ? hoveredUnit : null}
-        entity={entityType !== 'unit' ? hoveredUnit : null}
-        entityType={entityType}
+        entity={hoveredEntity}
+        nodes={nodes}
         position={tooltipPos}
         currency={config.currency}
       />
@@ -162,6 +226,14 @@ export default function PreviewPage() {
         unit={selectedUnit}
         config={displayConfig}
         onClose={() => setSelectedUnit(null)}
+      />
+
+      <ConfirmDialog
+        open={!!confirmDelete}
+        title="Delete this item?"
+        message={`Are you sure you want to delete "${confirmDelete?.entity?.name}"? This action cannot be undone.`}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
       />
     </div>
   );

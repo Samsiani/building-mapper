@@ -6,30 +6,27 @@ import { useProjectStore } from '../../../stores/projectStore';
 
 const Breadcrumbs = memo(function Breadcrumbs() {
   const currentView = useEditorStore((s) => s.currentView);
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
+  const nodes = useProjectStore((s) => s.nodes);
 
-  if (currentView.level === 'global') return null;
+  if (currentView.parentId === null) return null;
 
-  const segments = [{ label: 'Global', onClick: () => useEditorStore.getState().navigateTo('global') }];
+  // Build ancestor chain
+  const segments = [{ label: 'Global', onClick: () => useEditorStore.getState().navigateToRoot() }];
 
-  if (currentView.level === 'building' || currentView.level === 'floor') {
-    const building = buildings.find((b) => b.id === currentView.buildingId);
-    segments.push({
-      label: building?.name || 'Building',
-      onClick: currentView.level === 'floor'
-        ? () => useEditorStore.getState().navigateToBuilding(currentView.buildingId)
-        : null,
-    });
+  const ancestors = [];
+  let current = nodes.find((n) => n.id === currentView.parentId);
+  while (current) {
+    ancestors.unshift(current);
+    current = current.parentId !== null ? nodes.find((n) => n.id === current.parentId) : null;
   }
 
-  if (currentView.level === 'floor') {
-    const floor = floors.find((f) => f.id === currentView.floorId);
+  ancestors.forEach((ancestor, i) => {
+    const isLast = i === ancestors.length - 1;
     segments.push({
-      label: floor?.name || 'Floor',
-      onClick: null, // Current level, not clickable
+      label: ancestor.name,
+      onClick: isLast ? null : () => useEditorStore.getState().navigateInto(ancestor.id),
     });
-  }
+  });
 
   return (
     <AnimatePresence>
@@ -41,26 +38,23 @@ const Breadcrumbs = memo(function Breadcrumbs() {
         transition={{ duration: 0.2 }}
       >
         <Home size={13} className="text-[var(--text-tertiary)] mr-0.5" />
-        {segments.map((seg, i) => {
-          const isLast = i === segments.length - 1;
-          return (
-            <span key={i} className="flex items-center gap-1">
-              {i > 0 && <ChevronRight size={12} className="text-[var(--text-tertiary)]" />}
-              {seg.onClick ? (
-                <button
-                  onClick={seg.onClick}
-                  className="bg-transparent border-none text-[12px] font-medium text-[var(--text-secondary)] cursor-pointer hover:text-[var(--accent)] transition-colors px-0.5"
-                >
-                  {seg.label}
-                </button>
-              ) : (
-                <span className="text-[12px] font-semibold text-[var(--text-primary)] px-0.5">
-                  {seg.label}
-                </span>
-              )}
-            </span>
-          );
-        })}
+        {segments.map((seg, i) => (
+          <span key={i} className="flex items-center gap-1">
+            {i > 0 && <ChevronRight size={12} className="text-[var(--text-tertiary)]" />}
+            {seg.onClick ? (
+              <button
+                onClick={seg.onClick}
+                className="bg-transparent border-none text-[12px] font-medium text-[var(--text-secondary)] cursor-pointer hover:text-[var(--accent)] transition-colors px-0.5"
+              >
+                {seg.label}
+              </button>
+            ) : (
+              <span className="text-[12px] font-semibold text-[var(--text-primary)] px-0.5">
+                {seg.label}
+              </span>
+            )}
+          </span>
+        ))}
       </motion.div>
     </AnimatePresence>
   );

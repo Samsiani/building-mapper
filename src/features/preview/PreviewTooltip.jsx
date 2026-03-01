@@ -1,15 +1,14 @@
 import { useRef, useLayoutEffect, useState } from 'react';
+import { NODE_TYPES, getNodeColors, canDrillInto } from '../../utils/nodeTypes';
 import { STATUS } from '../../utils/constants';
 import { formatPrice } from '../../utils/formatPrice';
 
-export default function PreviewTooltip({ unit, entity, entityType, position, currency }) {
+export default function PreviewTooltip({ entity, nodes, position, currency }) {
   const tooltipRef = useRef(null);
   const [clamped, setClamped] = useState({ x: 0, y: 0 });
 
-  const target = unit || entity;
-
   useLayoutEffect(() => {
-    if (!tooltipRef.current || !target) return;
+    if (!tooltipRef.current || !entity) return;
     const tt = tooltipRef.current;
     const tw = tt.offsetWidth;
     const th = tt.offsetHeight;
@@ -20,77 +19,68 @@ export default function PreviewTooltip({ unit, entity, entityType, position, cur
     if (ty < 12) ty = 12;
     if (tx < 12) tx = 12;
     setClamped({ x: tx, y: ty });
-  }, [position, target]);
+  }, [position, entity]);
 
-  if (!target) return null;
+  if (!entity) return null;
 
-  // Unit tooltip
-  if (unit) {
-    const status = STATUS[unit.status] || STATUS.available;
-    const pricePerSqm = unit.area > 0 ? unit.price / unit.area : 0;
+  const typeDef = NODE_TYPES[entity.type];
+  if (!typeDef) return null;
 
+  // Status-bearing entities (apartments) — show price/area/status
+  if (typeDef.hasStatus) {
+    const status = STATUS[entity.status] || STATUS.available;
     return (
-      <div
-        ref={tooltipRef}
-        className="fixed pointer-events-none z-[200] min-w-[220px] max-w-[270px]"
-        style={{ left: clamped.x, top: clamped.y, animation: 'tooltipIn 120ms cubic-bezier(0.2, 0, 0, 1)' }}
-      >
-        <div className="relative bg-white/[0.97] backdrop-blur-[16px] border border-[rgba(0,0,0,0.08)] rounded-xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.06)]">
-          <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${status.color}, ${status.color}88)` }} />
-          <div className="flex items-center gap-2.5 px-4 pt-3 pb-2">
-            <div className="w-[9px] h-[9px] rounded-full flex-shrink-0" style={{ background: status.color, boxShadow: `0 0 6px ${status.color}44` }} />
-            <span className="text-[14px] font-bold text-[var(--pv-text)] tracking-tight flex-1 truncate">{unit.name}</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-[2px] rounded-full" style={{ background: `${status.color}14`, color: status.color }}>{status.label}</span>
+      <div ref={tooltipRef} className="pvtt" style={{ left: clamped.x, top: clamped.y }}>
+        <div className="pvtt-card">
+          <div className="pvtt-stripe" style={{ background: status.color }} />
+          <div className="pvtt-head">
+            <span className="pvtt-dot" style={{ background: status.color }} />
+            <span className="pvtt-name">{entity.name}</span>
+            <span className="pvtt-badge" style={{ '--c': status.color }}>{status.label}</span>
           </div>
-          <div className="px-4 pb-2.5">
-            <div className="text-[18px] font-bold text-[var(--pv-accent)] tracking-tight leading-none">{formatPrice(unit.price, currency)}</div>
-            {pricePerSqm > 0 && (
-              <div className="text-[10px] text-[var(--pv-text-muted)] mt-1 font-medium">{formatPrice(Math.round(pricePerSqm), currency)} / m²</div>
+          {entity.price > 0 && (
+            <div className="pvtt-price">{formatPrice(entity.price, currency)}</div>
+          )}
+          <div className="pvtt-row">
+            <span>{entity.area} m²</span>
+            <span className="pvtt-row-sep" />
+            <span>{entity.rooms} rm</span>
+            {entity.orientation && (
+              <>
+                <span className="pvtt-row-sep" />
+                <span>{entity.orientation}</span>
+              </>
             )}
           </div>
-          <div className="mx-4 h-px bg-[rgba(0,0,0,0.06)]" />
-          <div className="grid grid-cols-3 px-4 py-2.5 gap-2">
-            <CompactStat label="Area" value={`${unit.area} m²`} />
-            <CompactStat label="Rooms" value={unit.rooms} />
-            <CompactStat label="Orient." value={unit.orientation} />
-          </div>
-          <div className="bg-[rgba(0,0,0,0.02)] px-4 py-1.5 text-center">
-            <span className="text-[10px] text-[var(--pv-text-muted)] font-medium">Click for details</span>
-          </div>
+          <div className="pvtt-hint">Click for details</div>
         </div>
       </div>
     );
   }
 
-  // Building/Floor entity tooltip
-  const color = entityType === 'building' ? '#6366f1' : '#a855f7';
-  return (
-    <div
-      ref={tooltipRef}
-      className="fixed pointer-events-none z-[200] min-w-[180px] max-w-[240px]"
-      style={{ left: clamped.x, top: clamped.y, animation: 'tooltipIn 120ms cubic-bezier(0.2, 0, 0, 1)' }}
-    >
-      <div className="relative bg-white/[0.97] backdrop-blur-[16px] border border-[rgba(0,0,0,0.08)] rounded-xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.12)]">
-        <div className="h-[3px]" style={{ background: `linear-gradient(90deg, ${color}, ${color}88)` }} />
-        <div className="px-4 pt-3 pb-2">
-          <div className="text-[14px] font-bold text-[var(--pv-text)] tracking-tight">{entity.name}</div>
-          {entity.description && (
-            <div className="text-[11px] text-[var(--pv-text-muted)] mt-0.5">{entity.description}</div>
-          )}
-        </div>
-        <div className="bg-[rgba(0,0,0,0.02)] px-4 py-1.5 text-center">
-          <span className="text-[10px] text-[var(--pv-text-muted)] font-medium">Click to explore</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+  // Non-status entities — show name + type + child count
+  const colors = getNodeColors(entity);
+  const childCount = nodes ? nodes.filter((n) => n.parentId === entity.id).length : 0;
+  const isDrillable = canDrillInto(entity.type);
 
-function CompactStat({ label, value }) {
   return (
-    <div className="text-center">
-      <div className="text-[12px] font-semibold text-[var(--pv-text)]">{value}</div>
-      <div className="text-[9px] text-[var(--pv-text-muted)] font-medium uppercase tracking-wide">{label}</div>
+    <div ref={tooltipRef} className="pvtt" style={{ left: clamped.x, top: clamped.y }}>
+      <div className="pvtt-card">
+        <div className="pvtt-stripe" style={{ background: colors.color }} />
+        <div className="pvtt-head">
+          <span className="pvtt-name">{entity.name}</span>
+          <span className="pvtt-type" style={{ color: colors.color }}>{typeDef.label}</span>
+        </div>
+        {entity.description && (
+          <div className="pvtt-desc">{entity.description}</div>
+        )}
+        {childCount > 0 && (
+          <div className="pvtt-row">
+            <span>{childCount} child{childCount !== 1 ? 'ren' : ''}</span>
+          </div>
+        )}
+        {isDrillable && <div className="pvtt-hint">Click to explore</div>}
+      </div>
     </div>
   );
 }

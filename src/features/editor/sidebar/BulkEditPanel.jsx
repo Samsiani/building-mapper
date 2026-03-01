@@ -8,26 +8,26 @@ import Button from '../../../components/ui/Button';
 import ConfirmButton from '../../../components/ui/ConfirmButton';
 
 const BulkEditPanel = memo(function BulkEditPanel() {
-  const selectedUnitIds = useEditorStore((s) => s.selectedUnitIds);
-  const deselectUnit = useEditorStore((s) => s.deselectUnit);
+  const selectedNodeIds = useEditorStore((s) => s.selectedNodeIds);
+  const deselectNode = useEditorStore((s) => s.deselectNode);
   const bulkUpdateStatus = useProjectStore((s) => s.bulkUpdateStatus);
   const bulkRemove = useProjectStore((s) => s.bulkRemove);
   const toast = useToastStore((s) => s.show);
 
   const handleStatusChange = useCallback(
     (status) => {
-      bulkUpdateStatus(selectedUnitIds, status);
-      toast(`${selectedUnitIds.length} units updated to ${STATUS[status].label}`, 'success');
+      bulkUpdateStatus(selectedNodeIds, status);
+      toast(`${selectedNodeIds.length} items updated to ${STATUS[status].label}`, 'success');
     },
-    [selectedUnitIds, bulkUpdateStatus, toast]
+    [selectedNodeIds, bulkUpdateStatus, toast]
   );
 
   const handleBulkDelete = useCallback(() => {
-    const count = selectedUnitIds.length;
-    bulkRemove(selectedUnitIds);
-    deselectUnit();
-    toast(`${count} units deleted`, 'info');
-  }, [selectedUnitIds, bulkRemove, deselectUnit, toast]);
+    const count = selectedNodeIds.length;
+    bulkRemove(selectedNodeIds);
+    deselectNode();
+    toast(`${count} items deleted`, 'info');
+  }, [selectedNodeIds, bulkRemove, deselectNode, toast]);
 
   return (
     <div className="flex flex-col h-full">
@@ -37,7 +37,7 @@ const BulkEditPanel = memo(function BulkEditPanel() {
           Bulk Edit
         </h3>
         <button
-          onClick={deselectUnit}
+          onClick={deselectNode}
           className="w-7 h-7 rounded-[var(--radius-sm)] bg-[var(--bg-tertiary)] border-none flex items-center justify-center text-[var(--text-tertiary)] cursor-pointer hover:text-[var(--text-secondary)] transition-all"
         >
           <X size={14} />
@@ -46,7 +46,7 @@ const BulkEditPanel = memo(function BulkEditPanel() {
 
       <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-4">
         <p className="text-[13px] text-[var(--text-secondary)]">
-          <span className="font-semibold text-[var(--text-primary)]">{selectedUnitIds.length}</span> units selected
+          <span className="font-semibold text-[var(--text-primary)]">{selectedNodeIds.length}</span> items selected
         </p>
 
         <div>
@@ -70,7 +70,7 @@ const BulkEditPanel = memo(function BulkEditPanel() {
 
       <div className="px-5 py-4 border-t border-[var(--border)] flex flex-col gap-2">
         <ConfirmButton onConfirm={handleBulkDelete}>
-          Delete {selectedUnitIds.length} Units
+          Delete {selectedNodeIds.length} Items
         </ConfirmButton>
       </div>
     </div>

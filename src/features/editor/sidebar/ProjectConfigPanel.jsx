@@ -2,6 +2,7 @@ import { memo, useCallback } from 'react';
 import { Settings } from 'lucide-react';
 import { useProjectStore } from '../../../stores/projectStore';
 import FloatingInput from '../../../components/ui/FloatingInput';
+import ImageUpload from '../../../components/ui/ImageUpload';
 
 const ProjectConfigPanel = memo(function ProjectConfigPanel() {
   const config = useProjectStore((s) => s.projectConfig);
@@ -10,6 +11,13 @@ const ProjectConfigPanel = memo(function ProjectConfigPanel() {
   const handleChange = useCallback(
     (key) => (e) => {
       updateConfig({ [key]: e.target.value });
+    },
+    [updateConfig]
+  );
+
+  const handleSiteImageChange = useCallback(
+    (image) => {
+      updateConfig({ siteBackgroundImage: image });
     },
     [updateConfig]
   );
@@ -55,6 +63,16 @@ const ProjectConfigPanel = memo(function ProjectConfigPanel() {
           label="Currency" id="cfg-currency"
           value={config.currency} onChange={handleChange('currency')}
         />
+
+        <SectionTitle>Site Background</SectionTitle>
+        <ImageUpload
+          value={config.siteBackgroundImage}
+          onChange={handleSiteImageChange}
+          label="Site Photo"
+        />
+        <p className="text-[10px] text-[var(--text-tertiary)] -mt-2">
+          Aerial or site photo shown at the global level
+        </p>
       </div>
     </div>
   );

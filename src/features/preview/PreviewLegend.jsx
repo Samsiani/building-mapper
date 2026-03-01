@@ -2,10 +2,10 @@ import { STATUS } from '../../utils/constants';
 
 export default function PreviewLegend() {
   return (
-    <div className="flex justify-center gap-7 py-5">
+    <div className="pv-legend">
       {Object.entries(STATUS).map(([key, s]) => (
-        <div key={key} className="flex items-center gap-2 text-sm font-medium text-[var(--pv-text-secondary)]">
-          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: s.color }} />
+        <div key={key} className="pv-legend-item">
+          <span className="pv-legend-dot" style={{ background: s.color, boxShadow: `0 0 6px ${s.color}40` }} />
           {s.label}
         </div>
       ))}

@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 
-export function useRubberBand(svgRef, units) {
+export function useRubberBand(svgRef, entities) {
   const [isSelecting, setIsSelecting] = useState(false);
   const [rect, setRect] = useState(null);
   const startPoint = useRef(null);
@@ -43,19 +43,18 @@ export function useRubberBand(svgRef, units) {
   );
 
   const endSelection = useCallback(() => {
-    if (!rect || !units) {
+    if (!rect || !entities) {
       setIsSelecting(false);
       setRect(null);
       startPoint.current = null;
       return [];
     }
 
-    // Find units whose centroid is inside the selection rect
-    const selectedIds = units
-      .filter((unit) => {
-        if (!unit.points || unit.points.length === 0) return false;
-        const cx = unit.points.reduce((s, p) => s + p.x, 0) / unit.points.length;
-        const cy = unit.points.reduce((s, p) => s + p.y, 0) / unit.points.length;
+    const selectedIds = entities
+      .filter((entity) => {
+        if (!entity.points || entity.points.length === 0) return false;
+        const cx = entity.points.reduce((s, p) => s + p.x, 0) / entity.points.length;
+        const cy = entity.points.reduce((s, p) => s + p.y, 0) / entity.points.length;
         return (
           cx >= rect.x &&
           cx <= rect.x + rect.width &&
@@ -63,13 +62,13 @@ export function useRubberBand(svgRef, units) {
           cy <= rect.y + rect.height
         );
       })
-      .map((u) => u.id);
+      .map((e) => e.id);
 
     setIsSelecting(false);
     setRect(null);
     startPoint.current = null;
     return selectedIds;
-  }, [rect, units]);
+  }, [rect, entities]);
 
   return { isSelecting, rect, startSelection, updateSelection, endSelection };
 }

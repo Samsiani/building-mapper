@@ -3,14 +3,14 @@ import { useEditorStore } from '../stores/editorStore';
 import { useProjectStore } from '../stores/projectStore';
 import { useToastStore } from '../stores/toastStore';
 import { useCommandStore } from '../stores/commandStore';
+import { NODE_TYPES } from '../utils/nodeTypes';
 
 export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ignore when typing in inputs
       if (e.target.closest('input, textarea, select')) return;
 
-      const { activeTool, setActiveTool, deselectUnit, drawingPoints, setDrawingPoints, currentView } =
+      const { activeTool, setActiveTool, deselectNode, drawingPoints, setDrawingPoints, currentView } =
         useEditorStore.getState();
       const { undo, redo } = useProjectStore.getState();
       const toast = useToastStore.getState().show;
@@ -46,7 +46,6 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
       // Escape — navigate up or cancel
       if (e.key === 'Escape') {
         e.preventDefault();
-        // Close command palette if open
         if (useCommandStore.getState().isOpen) {
           useCommandStore.getState().close();
           return;
@@ -54,11 +53,10 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
         if (drawingPoints.length > 0) {
           setDrawingPoints([]);
           toast('Drawing cancelled', 'info', 2000);
-        } else if (currentView.level !== 'global') {
-          // Navigate up one level
+        } else if (currentView.parentId !== null) {
           useEditorStore.getState().navigateUp();
         } else {
-          deselectUnit();
+          deselectNode();
           setActiveTool('select');
         }
         return;
@@ -79,15 +77,16 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
         }
       }
 
-      // Delete selected unit (only at floor level)
+      // Delete selected node (works at any level)
       if ((e.key === 'Delete' || e.key === 'Backspace') && activeTool !== 'pen') {
-        const { selectedUnitId } = useEditorStore.getState();
-        if (selectedUnitId && currentView.level === 'floor') {
+        const { selectedNodeId } = useEditorStore.getState();
+        if (selectedNodeId) {
           e.preventDefault();
-          const unit = useProjectStore.getState().units.find((u) => u.id === selectedUnitId);
-          useProjectStore.getState().removeUnit(selectedUnitId);
-          deselectUnit();
-          toast(`${unit?.name || 'Unit'} deleted`, 'info');
+          const node = useProjectStore.getState().nodes.find((n) => n.id === selectedNodeId);
+          const name = node?.name || NODE_TYPES[node?.type]?.label || 'Item';
+          useProjectStore.getState().removeNode(selectedNodeId);
+          deselectNode();
+          toast(`${name} deleted`, 'info');
         }
         return;
       }

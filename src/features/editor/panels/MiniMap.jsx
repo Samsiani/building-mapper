@@ -1,49 +1,39 @@
 import { memo, useRef, useEffect, useMemo } from 'react';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useEditorStore } from '../../../stores/editorStore';
+import { NODE_TYPES, getNodeColors } from '../../../utils/nodeTypes';
 import { renderBuilding } from '../../../utils/buildingRenderer';
-import { STATUS } from '../../../utils/constants';
-
-const ENTITY_COLORS = {
-  building: { fill: 'rgba(99, 102, 241, 0.25)', stroke: '#6366f1' },
-  floor: { fill: 'rgba(168, 85, 247, 0.25)', stroke: '#a855f7' },
-};
 
 const MiniMap = memo(function MiniMap({ zoom }) {
   const layerRef = useRef(null);
   const defsRef = useRef(null);
   const currentView = useEditorStore((s) => s.currentView);
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
-  const units = useProjectStore((s) => s.units);
+  const nodes = useProjectStore((s) => s.nodes);
   const projectConfig = useProjectStore((s) => s.projectConfig);
   const theme = useEditorStore((s) => s.editorTheme);
 
-  // Determine what to show on minimap based on level
-  const { entities, entityType, proceduralConfig } = useMemo(() => {
-    if (currentView.level === 'global') {
-      return { entities: buildings, entityType: 'building', proceduralConfig: null };
+  // Determine what to show on minimap based on current parentId
+  const { entities, proceduralConfig } = useMemo(() => {
+    const children = nodes.filter((n) => n.parentId === currentView.parentId);
+
+    let cfg = null;
+    if (currentView.parentId !== null) {
+      const parentNode = nodes.find((n) => n.id === currentView.parentId);
+      if (parentNode) {
+        const typeDef = NODE_TYPES[parentNode.type];
+        if (typeDef?.hasProceduralFallback && !parentNode.backgroundImage) {
+          cfg = {
+            buildingName: parentNode.name,
+            floors: parentNode.floors || 6,
+            unitsPerFloor: parentNode.unitsPerFloor || 4,
+            companyName: projectConfig.companyName,
+          };
+        }
+      }
     }
-    if (currentView.level === 'building') {
-      const building = buildings.find((b) => b.id === currentView.buildingId);
-      const cfg = building && !building.backgroundImage ? {
-        buildingName: building.name,
-        floors: building.floors || 6,
-        unitsPerFloor: building.unitsPerFloor || 4,
-        companyName: projectConfig.companyName,
-      } : null;
-      return {
-        entities: floors.filter((f) => f.buildingId === currentView.buildingId),
-        entityType: 'floor',
-        proceduralConfig: cfg,
-      };
-    }
-    return {
-      entities: units.filter((u) => u.floorId === currentView.floorId),
-      entityType: 'unit',
-      proceduralConfig: null,
-    };
-  }, [currentView, buildings, floors, units, projectConfig]);
+
+    return { entities: children, proceduralConfig: cfg };
+  }, [currentView.parentId, nodes, projectConfig]);
 
   // Only show when zoomed in
   if (zoom < 1.5) return null;
@@ -59,11 +49,7 @@ const MiniMap = memo(function MiniMap({ zoom }) {
         {entities.map((entity) => {
           if (!entity.points || entity.points.length < 3) return null;
           const pts = entity.points.map((p) => `${p.x},${p.y}`).join(' ');
-          if (entityType === 'unit') {
-            const status = STATUS[entity.status] || STATUS.available;
-            return <polygon key={entity.id} points={pts} fill={status.fill} stroke={status.stroke} strokeWidth="0.8" />;
-          }
-          const colors = ENTITY_COLORS[entityType];
+          const colors = getNodeColors(entity);
           return <polygon key={entity.id} points={pts} fill={colors.fill} stroke={colors.stroke} strokeWidth="0.8" />;
         })}
         <rect

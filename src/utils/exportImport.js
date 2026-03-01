@@ -18,11 +18,12 @@ export function importJSON(file) {
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target.result);
-        // Accept new format (projectConfig + buildings + floors + units)
-        // or old format (buildingConfig + units)
-        const isNewFormat = data.projectConfig && Array.isArray(data.buildings);
-        const isOldFormat = data.buildingConfig && Array.isArray(data.units);
-        if (!isNewFormat && !isOldFormat) {
+        // Accept v3 (projectConfig + nodes), v2 (projectConfig + buildings + floors + units),
+        // or v1 (buildingConfig + units)
+        const isV3 = data.projectConfig && Array.isArray(data.nodes);
+        const isV2 = data.projectConfig && Array.isArray(data.buildings);
+        const isV1 = data.buildingConfig && Array.isArray(data.units);
+        if (!isV3 && !isV2 && !isV1) {
           reject(new Error('Invalid masterplan file format'));
           return;
         }

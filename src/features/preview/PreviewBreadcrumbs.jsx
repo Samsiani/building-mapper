@@ -1,53 +1,49 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Home } from 'lucide-react';
 
-export default function PreviewBreadcrumbs({ previewView, buildings, floors, onNavigate }) {
-  if (previewView.level === 'global') return null;
+export default function PreviewBreadcrumbs({ previewView, nodes, onNavigate }) {
+  if (previewView.parentId === null) return null;
 
   const segments = [
-    { label: 'All Buildings', onClick: () => onNavigate('global') },
+    { label: 'Overview', icon: Home, onClick: () => onNavigate(null) },
   ];
 
-  if (previewView.level === 'building' || previewView.level === 'floor') {
-    const building = buildings.find((b) => b.id === previewView.buildingId);
-    segments.push({
-      label: building?.name || 'Building',
-      onClick: previewView.level === 'floor'
-        ? () => onNavigate('building', previewView.buildingId)
-        : null,
-    });
+  // Build ancestor chain
+  const ancestors = [];
+  let current = nodes.find((n) => n.id === previewView.parentId);
+  while (current) {
+    ancestors.unshift(current);
+    current = current.parentId !== null ? nodes.find((n) => n.id === current.parentId) : null;
   }
 
-  if (previewView.level === 'floor') {
-    const floor = floors.find((f) => f.id === previewView.floorId);
+  ancestors.forEach((ancestor, i) => {
+    const isLast = i === ancestors.length - 1;
     segments.push({
-      label: floor?.name || 'Floor',
-      onClick: null,
+      label: ancestor.name,
+      onClick: isLast ? null : () => onNavigate(ancestor.id),
     });
-  }
+  });
 
   return (
-    <div className="flex items-center gap-1.5 mb-4 text-[13px]">
+    <nav className="pv-breadcrumbs">
       {segments.map((seg, i) => {
-        const isLast = i === segments.length - 1;
+        const Icon = seg.icon;
         return (
-          <span key={i} className="flex items-center gap-1.5">
-            {i > 0 && <ChevronRight size={14} className="text-[var(--pv-text)]" style={{ opacity: 0.4 }} />}
+          <span key={i} className="pv-breadcrumb-item">
+            {i > 0 && <ChevronRight size={12} className="pv-breadcrumb-sep" />}
             {seg.onClick ? (
-              <button
-                onClick={seg.onClick}
-                className="bg-transparent border-none font-medium cursor-pointer hover:underline px-0"
-                style={{ color: 'var(--pv-text)', opacity: 0.6 }}
-              >
+              <button onClick={seg.onClick} className="pv-breadcrumb-btn">
+                {Icon && <Icon size={13} />}
                 {seg.label}
               </button>
             ) : (
-              <span className="font-semibold" style={{ color: 'var(--pv-text)' }}>
+              <span className="pv-breadcrumb-current">
+                {Icon && <Icon size={13} />}
                 {seg.label}
               </span>
             )}
           </span>
         );
       })}
-    </div>
+    </nav>
   );
 }

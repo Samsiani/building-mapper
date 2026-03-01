@@ -3,6 +3,7 @@ import { Eye, EyeOff, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEditorStore } from '../../../stores/editorStore';
 import { useProjectStore } from '../../../stores/projectStore';
+import { NODE_TYPES } from '../../../utils/nodeTypes';
 
 const LayersPanel = memo(function LayersPanel() {
   const isOpen = useEditorStore((s) => s.layersPanelOpen);
@@ -10,17 +11,20 @@ const LayersPanel = memo(function LayersPanel() {
   const buildingVisible = useEditorStore((s) => s.buildingLayerVisible);
   const toggleBuilding = useEditorStore((s) => s.toggleBuildingLayer);
   const currentView = useEditorStore((s) => s.currentView);
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
-  const units = useProjectStore((s) => s.units);
+  const nodes = useProjectStore((s) => s.nodes);
 
-  const entities = useMemo(() => {
-    if (currentView.level === 'global') return buildings;
-    if (currentView.level === 'building') return floors.filter((f) => f.buildingId === currentView.buildingId);
-    return units.filter((u) => u.floorId === currentView.floorId);
-  }, [currentView, buildings, floors, units]);
+  const entities = useMemo(
+    () => nodes.filter((n) => n.parentId === currentView.parentId),
+    [nodes, currentView.parentId]
+  );
 
-  const levelLabel = currentView.level === 'global' ? 'Buildings' : currentView.level === 'building' ? 'Floors' : 'Units';
+  // Determine level label based on what children are at this level
+  const levelLabel = useMemo(() => {
+    if (entities.length === 0) return 'Entities';
+    const types = [...new Set(entities.map((e) => e.type))];
+    if (types.length === 1) return NODE_TYPES[types[0]]?.labelPlural || 'Entities';
+    return 'Entities';
+  }, [entities]);
 
   return (
     <div className="absolute bottom-4 left-4 z-50">
@@ -45,7 +49,12 @@ const LayersPanel = memo(function LayersPanel() {
                 onToggle={toggleBuilding}
               />
               {entities.map((entity) => (
-                <LayerRow key={entity.id} label={entity.name} visible={true} />
+                <LayerRow
+                  key={entity.id}
+                  label={entity.name}
+                  visible={true}
+                  color={NODE_TYPES[entity.type]?.color}
+                />
               ))}
             </div>
           </motion.div>
@@ -65,7 +74,7 @@ const LayersPanel = memo(function LayersPanel() {
   );
 });
 
-function LayerRow({ label, visible, onToggle }) {
+function LayerRow({ label, visible, onToggle, color }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2 hover:bg-[rgba(255,255,255,0.03)] transition-colors">
       <button
@@ -74,6 +83,7 @@ function LayerRow({ label, visible, onToggle }) {
       >
         {visible ? <Eye size={13} /> : <EyeOff size={13} />}
       </button>
+      {color && <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: color }} />}
       <span className="text-[12px] text-[var(--text-secondary)] truncate">{label}</span>
     </div>
   );

@@ -1,21 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
 import { useProjectStore } from '../stores/projectStore';
-import { useEditorStore } from '../stores/editorStore';
 
-export function useEditHandles(svgRef, entityId) {
+export function useEditHandles(svgRef, nodeId) {
   const [isDragging, setIsDragging] = useState(false);
   const draggingIndex = useRef(null);
 
-  const currentView = useEditorStore((s) => s.currentView);
-
-  // Determine which entity collection to use based on view level
-  const entityType = currentView.level === 'global' ? 'building' : currentView.level === 'building' ? 'floor' : 'unit';
-
-  const entity = useProjectStore((s) => {
-    if (entityType === 'building') return s.buildings.find((b) => b.id === entityId);
-    if (entityType === 'floor') return s.floors.find((f) => f.id === entityId);
-    return s.units.find((u) => u.id === entityId);
-  });
+  const entity = useProjectStore((s) => s.nodes.find((n) => n.id === nodeId));
 
   const onHandleMouseDown = useCallback(
     (e, index) => {
@@ -36,15 +26,14 @@ export function useEditHandles(svgRef, entityId) {
         const y = Math.max(0, Math.min(100, Math.round(svgPt.y * 100) / 100));
 
         const store = useProjectStore.getState();
-        const collection = entityType === 'building' ? 'buildings' : entityType === 'floor' ? 'floors' : 'units';
-        const current = store[collection].find((e) => e.id === entityId);
+        const current = store.nodes.find((n) => n.id === nodeId);
         if (current) {
           const newPoints = current.points.map((p, i) =>
             i === draggingIndex.current ? { x, y } : { ...p }
           );
           useProjectStore.setState((state) => ({
-            [collection]: state[collection].map((e) =>
-              e.id === entityId ? { ...e, points: newPoints } : e
+            nodes: state.nodes.map((n) =>
+              n.id === nodeId ? { ...n, points: newPoints } : n
             ),
           }));
         }
@@ -53,16 +42,9 @@ export function useEditHandles(svgRef, entityId) {
       const handleMouseUp = () => {
         if (draggingIndex.current !== null) {
           const store = useProjectStore.getState();
-          const collection = entityType === 'building' ? 'buildings' : entityType === 'floor' ? 'floors' : 'units';
-          const current = store[collection].find((e) => e.id === entityId);
+          const current = store.nodes.find((n) => n.id === nodeId);
           if (current) {
-            if (entityType === 'building') {
-              store.updateBuildingPoints(entityId, [...current.points]);
-            } else if (entityType === 'floor') {
-              store.updateFloorPoints(entityId, [...current.points]);
-            } else {
-              store.updateUnitPoints(entityId, [...current.points]);
-            }
+            store.updateNodePoints(nodeId, [...current.points]);
           }
         }
         draggingIndex.current = null;
@@ -74,7 +56,7 @@ export function useEditHandles(svgRef, entityId) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     },
-    [svgRef, entityId, entityType]
+    [svgRef, nodeId]
   );
 
   return {

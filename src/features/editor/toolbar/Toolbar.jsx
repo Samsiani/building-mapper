@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import {
   MousePointer, Pen, Edit3, Hand, ZoomIn, ZoomOut,
   Undo2, Redo2, Grid3x3, Download, Upload, Ruler, ArrowLeft
@@ -6,6 +6,7 @@ import {
 import { useEditorStore } from '../../../stores/editorStore';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useToastStore } from '../../../stores/toastStore';
+import { NODE_TYPES, getAllowedChildTypes } from '../../../utils/nodeTypes';
 import { exportJSON, importJSON } from '../../../utils/exportImport';
 
 const TOOL_ICONS = {
@@ -32,9 +33,21 @@ const Toolbar = memo(function Toolbar({ panZoom, measurement }) {
   const snapEnabled = useEditorStore((s) => s.snapEnabled);
   const toggleSnap = useEditorStore((s) => s.toggleSnap);
   const currentView = useEditorStore((s) => s.currentView);
+  const nodes = useProjectStore((s) => s.nodes);
 
   const canUndo = useProjectStore((s) => s.canUndo());
   const canRedo = useProjectStore((s) => s.canRedo());
+
+  // Determine what type will be drawn based on current parent
+  const drawLabel = useMemo(() => {
+    const parentNode = currentView.parentId !== null ? nodes.find((n) => n.id === currentView.parentId) : null;
+    const parentType = parentNode?.type || null;
+    const allowed = getAllowedChildTypes(parentType);
+    if (allowed.length === 1) {
+      return NODE_TYPES[allowed[0]]?.label?.toLowerCase() || 'entity';
+    }
+    return 'entity';
+  }, [currentView.parentId, nodes]);
 
   const handleToolChange = useCallback(
     (tool) => {
@@ -43,11 +56,10 @@ const Toolbar = memo(function Toolbar({ panZoom, measurement }) {
         measurement.reset();
       }
       if (tool === 'pen') {
-        const levelLabel = currentView.level === 'global' ? 'building' : currentView.level === 'building' ? 'floor' : 'unit';
-        useToastStore.getState().show(`Draw a ${levelLabel} polygon. Enter or click first point to close.`, 'info', 4000);
+        useToastStore.getState().show(`Draw a ${drawLabel} polygon. Enter or click first point to close.`, 'info', 4000);
       }
     },
-    [setActiveTool, measurement, currentView.level]
+    [setActiveTool, measurement, drawLabel]
   );
 
   const handleBack = useCallback(() => {
@@ -82,7 +94,7 @@ const Toolbar = memo(function Toolbar({ panZoom, measurement }) {
       try {
         const data = await importJSON(file);
         useProjectStore.getState().importData(data);
-        useEditorStore.getState().navigateTo('global');
+        useEditorStore.getState().navigateToRoot();
         useToastStore.getState().show('Project imported', 'success');
       } catch (err) {
         useToastStore.getState().show(err.message, 'error');
@@ -93,8 +105,8 @@ const Toolbar = memo(function Toolbar({ panZoom, measurement }) {
 
   return (
     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-0.5 py-[5px] px-2 bg-[var(--bg-glass)] backdrop-blur-[20px] saturate-[1.4] border border-[var(--border)] rounded-full shadow-lg">
-      {/* Back button when not at global */}
-      {currentView.level !== 'global' && (
+      {/* Back button when not at root */}
+      {currentView.parentId !== null && (
         <>
           <ToolButton title="Back (Esc)" onClick={handleBack}>
             <ArrowLeft size={18} />

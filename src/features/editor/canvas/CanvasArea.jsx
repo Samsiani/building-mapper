@@ -6,6 +6,7 @@ import { useSVGCoordinates } from '../../../hooks/useSVGCoordinates';
 import { useDrawingTool } from '../../../hooks/useDrawingTool';
 import { useRubberBand } from '../../../hooks/useRubberBand';
 import { useMeasurement } from '../../../hooks/useMeasurement';
+import { NODE_TYPES, canDrillInto } from '../../../utils/nodeTypes';
 import MasterplanSVG from './MasterplanSVG';
 import Toolbar from '../toolbar/Toolbar';
 import EntityTooltip from '../overlays/EntityTooltip';
@@ -18,20 +19,16 @@ import SelectionRectangle from './SelectionRectangle';
 export default function CanvasArea({ containerRef, panZoom }) {
   const svgRef = useRef(null);
   const activeTool = useEditorStore((s) => s.activeTool);
-  const hoveredUnitId = useEditorStore((s) => s.hoveredUnitId);
-  const hoveredEntityId = useEditorStore((s) => s.hoveredEntityId);
+  const hoveredNodeId = useEditorStore((s) => s.hoveredNodeId);
   const currentView = useEditorStore((s) => s.currentView);
   const { screenToSVG } = useSVGCoordinates(svgRef);
   const { addPoint, closePolygon, isDrawing, drawingPoints } = useDrawingTool();
 
-  // Get entities for rubber band based on level
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
-  const units = useProjectStore((s) => s.units);
-
-  const rubberBandEntities = currentView.level === 'floor'
-    ? units.filter((u) => u.floorId === currentView.floorId)
-    : [];
+  // Get entities for rubber band — only hasStatus nodes (apartments) at current level
+  const nodes = useProjectStore((s) => s.nodes);
+  const rubberBandEntities = nodes.filter(
+    (n) => n.parentId === currentView.parentId && NODE_TYPES[n.type]?.hasStatus
+  );
 
   const { isSelecting, rect: selRect, startSelection, updateSelection, endSelection } = useRubberBand(svgRef, rubberBandEntities);
   const measurement = useMeasurement();
@@ -52,12 +49,12 @@ export default function CanvasArea({ containerRef, panZoom }) {
         panZoom.startPan(e.clientX, e.clientY);
         return;
       }
-      // Rubber band selection only at floor level
-      if (activeTool === 'select' && currentView.level === 'floor' && !e.target.closest('.unit-polygon') && !e.shiftKey) {
+      // Rubber band selection for hasStatus entities
+      if (activeTool === 'select' && rubberBandEntities.length > 0 && !e.target.closest('.entity-polygon') && !e.shiftKey) {
         startSelection(e.clientX, e.clientY);
       }
     },
-    [activeTool, panZoom, startSelection, currentView.level]
+    [activeTool, panZoom, startSelection, rubberBandEntities.length]
   );
 
   const handleMouseMove = useCallback(
@@ -69,8 +66,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
       if (isSelecting) {
         updateSelection(e.clientX, e.clientY);
       }
-      // Tooltip tracking
-      if (hoveredEntityId) {
+      if (hoveredNodeId) {
         const rect = containerRef.current?.getBoundingClientRect();
         if (rect) {
           setTooltipPos({
@@ -80,7 +76,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
         }
       }
     },
-    [panZoom, isSelecting, updateSelection, hoveredEntityId, containerRef]
+    [panZoom, isSelecting, updateSelection, hoveredNodeId, containerRef]
   );
 
   const handleMouseUp = useCallback(() => {
@@ -118,29 +114,25 @@ export default function CanvasArea({ containerRef, panZoom }) {
         return;
       }
 
-      // Drill-down: click on building/floor polygon with select tool
+      // Drill-down: click on drillable entity polygon with select tool
       if (activeTool === 'select') {
         const polygonEl = e.target.closest('.entity-polygon');
         if (polygonEl) {
           const entityId = parseInt(polygonEl.dataset.id);
           const entityType = polygonEl.dataset.type;
-          if (entityType === 'building') {
-            useEditorStore.getState().navigateToBuilding(entityId);
-            return;
-          }
-          if (entityType === 'floor') {
-            useEditorStore.getState().navigateToFloor(currentView.buildingId, entityId);
+          if (canDrillInto(entityType)) {
+            useEditorStore.getState().navigateInto(entityId);
             return;
           }
         }
 
         // Click on empty space = deselect
-        if (!e.target.closest('.unit-polygon') && !e.target.closest('.entity-polygon') && !e.target.closest('.edit-handle')) {
-          useEditorStore.getState().deselectUnit();
+        if (!e.target.closest('.entity-polygon') && !e.target.closest('.edit-handle')) {
+          useEditorStore.getState().deselectNode();
         }
       }
     },
-    [activeTool, screenToSVG, addPoint, closePolygon, drawingPoints, measurement, currentView.buildingId]
+    [activeTool, screenToSVG, addPoint, closePolygon, drawingPoints, measurement]
   );
 
   const handleDoubleClick = useCallback(() => {
@@ -161,7 +153,6 @@ export default function CanvasArea({ containerRef, panZoom }) {
         backgroundSize: '40px 40px',
       }}
     >
-      {/* Pan/Zoom wrapper */}
       <div
         className="w-full h-full origin-center"
         style={{ transform: panZoom.transform }}
@@ -177,7 +168,6 @@ export default function CanvasArea({ containerRef, panZoom }) {
       <Toolbar panZoom={panZoom} measurement={measurement} />
       <Breadcrumbs />
 
-      {/* Preview button */}
       <a
         href="/preview"
         target="_blank"

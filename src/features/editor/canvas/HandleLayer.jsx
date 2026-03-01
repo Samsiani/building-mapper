@@ -4,15 +4,15 @@ import { useEditHandles } from '../../../hooks/useEditHandles';
 
 const HandleLayer = memo(function HandleLayer({ svgRef }) {
   const activeTool = useEditorStore((s) => s.activeTool);
-  const selectedUnitId = useEditorStore((s) => s.selectedUnitId);
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
 
-  if (activeTool !== 'edit' || !selectedUnitId) return null;
+  if (activeTool !== 'edit' || !selectedNodeId) return null;
 
-  return <EditHandlesInner svgRef={svgRef} unitId={selectedUnitId} />;
+  return <EditHandlesInner svgRef={svgRef} nodeId={selectedNodeId} />;
 });
 
-function EditHandlesInner({ svgRef, unitId }) {
-  const { handles, onHandleMouseDown } = useEditHandles(svgRef, unitId);
+function EditHandlesInner({ svgRef, nodeId }) {
+  const { handles, onHandleMouseDown } = useEditHandles(svgRef, nodeId);
 
   return (
     <g className="handle-layer">

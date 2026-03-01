@@ -5,39 +5,31 @@ export const useEditorStore = create(
   devtools(
     (set, get) => ({
       activeTool: 'select',
-      selectedUnitId: null,
-      selectedUnitIds: [],
-      hoveredUnitId: null,
-      hoveredEntityId: null,
-      hoveredEntityType: null,
+      selectedNodeId: null,
+      selectedNodeIds: [],
+      hoveredNodeId: null,
       sidebarMode: 'config', // 'config' | 'edit' | 'create' | 'bulk' | 'analytics'
       pendingPoints: null,
-      pendingCreationType: null, // 'building' | 'floor' | 'unit'
-      pendingCreationParentId: null, // buildingId for floor, floorId for unit
+      pendingCreationType: null, // any node type string
+      pendingCreationParentId: null,
       drawingPoints: [],
       snapEnabled: false,
       snapSize: 2,
       buildingLayerVisible: true,
-      floorVisibility: {},
       layersPanelOpen: false,
       editorTheme: 'dark',
 
       // ─── Navigation state ───
-      currentView: {
-        level: 'global',   // 'global' | 'building' | 'floor'
-        buildingId: null,
-        floorId: null,
-      },
+      // parentId=null means root (project) level
+      currentView: { parentId: null },
 
       // ─── Navigation actions ───
-      navigateTo: (level, buildingId = null, floorId = null) =>
+      navigateInto: (nodeId) =>
         set({
-          currentView: { level, buildingId, floorId },
-          selectedUnitId: null,
-          selectedUnitIds: [],
-          hoveredUnitId: null,
-          hoveredEntityId: null,
-          hoveredEntityType: null,
+          currentView: { parentId: nodeId },
+          selectedNodeId: null,
+          selectedNodeIds: [],
+          hoveredNodeId: null,
           sidebarMode: 'config',
           pendingPoints: null,
           pendingCreationType: null,
@@ -47,64 +39,78 @@ export const useEditorStore = create(
 
       navigateUp: () => {
         const { currentView } = get();
-        if (currentView.level === 'floor') {
-          set({
-            currentView: { level: 'building', buildingId: currentView.buildingId, floorId: null },
-            selectedUnitId: null,
-            selectedUnitIds: [],
-            hoveredUnitId: null,
-            hoveredEntityId: null,
-            hoveredEntityType: null,
-            sidebarMode: 'config',
-            pendingPoints: null,
-            pendingCreationType: null,
-            drawingPoints: [],
-          });
-        } else if (currentView.level === 'building') {
-          set({
-            currentView: { level: 'global', buildingId: null, floorId: null },
-            selectedUnitId: null,
-            selectedUnitIds: [],
-            hoveredUnitId: null,
-            hoveredEntityId: null,
-            hoveredEntityType: null,
-            sidebarMode: 'config',
-            pendingPoints: null,
-            pendingCreationType: null,
-            drawingPoints: [],
-          });
-        }
+        if (currentView.parentId === null) return;
+
+        // Walk up the tree: find the parent node, then navigate to its parent
+        const { useProjectStore } = require('./projectStore');
+        const nodes = useProjectStore.getState().nodes;
+        const currentParent = nodes.find((n) => n.id === currentView.parentId);
+        const newParentId = currentParent ? currentParent.parentId : null;
+
+        set({
+          currentView: { parentId: newParentId },
+          selectedNodeId: null,
+          selectedNodeIds: [],
+          hoveredNodeId: null,
+          sidebarMode: 'config',
+          pendingPoints: null,
+          pendingCreationType: null,
+          pendingCreationParentId: null,
+          drawingPoints: [],
+        });
       },
 
-      navigateToBuilding: (buildingId) =>
+      navigateToRoot: () =>
         set({
-          currentView: { level: 'building', buildingId, floorId: null },
-          selectedUnitId: null,
-          selectedUnitIds: [],
-          hoveredUnitId: null,
-          hoveredEntityId: null,
-          hoveredEntityType: null,
+          currentView: { parentId: null },
+          selectedNodeId: null,
+          selectedNodeIds: [],
+          hoveredNodeId: null,
           sidebarMode: 'config',
           pendingPoints: null,
           pendingCreationType: null,
+          pendingCreationParentId: null,
           drawingPoints: [],
         }),
 
-      navigateToFloor: (buildingId, floorId) =>
+      // ─── Selection actions ───
+      selectNode: (id) =>
         set({
-          currentView: { level: 'floor', buildingId, floorId },
-          selectedUnitId: null,
-          selectedUnitIds: [],
-          hoveredUnitId: null,
-          hoveredEntityId: null,
-          hoveredEntityType: null,
-          sidebarMode: 'config',
-          pendingPoints: null,
-          pendingCreationType: null,
-          drawingPoints: [],
+          selectedNodeId: id,
+          selectedNodeIds: [id],
+          sidebarMode: 'edit',
         }),
 
-      // ─── Existing actions ───
+      deselectNode: () =>
+        set({
+          selectedNodeId: null,
+          selectedNodeIds: [],
+          sidebarMode: 'config',
+        }),
+
+      setHoveredNode: (id) => set({ hoveredNodeId: id }),
+      clearHoveredNode: () => set({ hoveredNodeId: null }),
+
+      setMultiSelect: (ids) =>
+        set({
+          selectedNodeId: ids.length === 1 ? ids[0] : null,
+          selectedNodeIds: ids,
+          sidebarMode: ids.length > 1 ? 'bulk' : ids.length === 1 ? 'edit' : 'config',
+        }),
+
+      toggleMultiSelect: (id) =>
+        set((state) => {
+          const ids = state.selectedNodeIds.includes(id)
+            ? state.selectedNodeIds.filter((i) => i !== id)
+            : [...state.selectedNodeIds, id];
+          return {
+            selectedNodeId: ids.length === 1 ? ids[0] : null,
+            selectedNodeIds: ids,
+            sidebarMode: ids.length > 1 ? 'bulk' : ids.length === 1 ? 'edit' : 'config',
+          };
+        }),
+
+      // ─── Tool actions ───
       setActiveTool: (tool) =>
         set((state) => {
           const updates = { activeTool: tool };
@@ -112,53 +118,6 @@ export const useEditorStore = create(
             updates.drawingPoints = [];
           }
           return updates;
-        }),
-
-      selectUnit: (id) =>
-        set({
-          selectedUnitId: id,
-          selectedUnitIds: [id],
-          sidebarMode: 'edit',
-        }),
-
-      deselectUnit: () =>
-        set({
-          selectedUnitId: null,
-          selectedUnitIds: [],
-          sidebarMode: 'config',
-        }),
-
-      setHoveredUnit: (id) => set({ hoveredUnitId: id }),
-
-      setHoveredEntity: (id, type) => set({
-        hoveredEntityId: id,
-        hoveredEntityType: type,
-        hoveredUnitId: type === 'unit' ? id : null,
-      }),
-
-      clearHoveredEntity: () => set({
-        hoveredEntityId: null,
-        hoveredEntityType: null,
-        hoveredUnitId: null,
-      }),
-
-      setMultiSelect: (ids) =>
-        set({
-          selectedUnitId: ids.length === 1 ? ids[0] : null,
-          selectedUnitIds: ids,
-          sidebarMode: ids.length > 1 ? 'bulk' : ids.length === 1 ? 'edit' : 'config',
-        }),
-
-      toggleMultiSelect: (id) =>
-        set((state) => {
-          const ids = state.selectedUnitIds.includes(id)
-            ? state.selectedUnitIds.filter((i) => i !== id)
-            : [...state.selectedUnitIds, id];
-          return {
-            selectedUnitId: ids.length === 1 ? ids[0] : null,
-            selectedUnitIds: ids,
-            sidebarMode: ids.length > 1 ? 'bulk' : ids.length === 1 ? 'edit' : 'config',
-          };
         }),
 
       setPendingPoints: (points) =>
@@ -186,21 +145,11 @@ export const useEditorStore = create(
         }),
 
       setSidebarMode: (mode) => set({ sidebarMode: mode }),
-
       setDrawingPoints: (points) => set({ drawingPoints: points }),
-
       toggleSnap: () => set((s) => ({ snapEnabled: !s.snapEnabled })),
       setSnapSize: (size) => set({ snapSize: size }),
-
       toggleBuildingLayer: () => set((s) => ({ buildingLayerVisible: !s.buildingLayerVisible })),
-
-      setFloorVisibility: (floor, visible) =>
-        set((s) => ({
-          floorVisibility: { ...s.floorVisibility, [floor]: visible },
-        })),
-
       toggleLayersPanel: () => set((s) => ({ layersPanelOpen: !s.layersPanelOpen })),
-
       toggleEditorTheme: () =>
         set((s) => ({ editorTheme: s.editorTheme === 'dark' ? 'light' : 'dark' })),
     }),

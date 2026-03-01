@@ -1,88 +1,88 @@
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useMemo, useRef, useEffect } from 'react';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useEditorStore } from '../../../stores/editorStore';
-import { STATUS } from '../../../utils/constants';
-
-const ENTITY_COLORS = {
-  building: {
-    fill: 'rgba(99, 102, 241, 0.15)',
-    fillHover: 'rgba(99, 102, 241, 0.35)',
-    stroke: '#6366f1',
-  },
-  floor: {
-    fill: 'rgba(168, 85, 247, 0.15)',
-    fillHover: 'rgba(168, 85, 247, 0.35)',
-    stroke: '#a855f7',
-  },
-};
+import { useToastStore } from '../../../stores/toastStore';
+import { NODE_TYPES, getNodeColors, canDrillInto } from '../../../utils/nodeTypes';
 
 const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
   const currentView = useEditorStore((s) => s.currentView);
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
-  const units = useProjectStore((s) => s.units);
-  const selectedUnitId = useEditorStore((s) => s.selectedUnitId);
-  const selectedUnitIds = useEditorStore((s) => s.selectedUnitIds);
-  const hoveredEntityId = useEditorStore((s) => s.hoveredEntityId);
+  const nodes = useProjectStore((s) => s.nodes);
+  const selectedNodeId = useEditorStore((s) => s.selectedNodeId);
+  const selectedNodeIds = useEditorStore((s) => s.selectedNodeIds);
+  const hoveredNodeId = useEditorStore((s) => s.hoveredNodeId);
   const activeTool = useEditorStore((s) => s.activeTool);
 
-  // Determine what entities to render based on level
-  const { entities, entityType } = useMemo(() => {
-    if (currentView.level === 'global') {
-      return { entities: buildings, entityType: 'building' };
-    } else if (currentView.level === 'building') {
-      return {
-        entities: floors.filter((f) => f.buildingId === currentView.buildingId),
-        entityType: 'floor',
-      };
-    } else {
-      return {
-        entities: units.filter((u) => u.floorId === currentView.floorId),
-        entityType: 'unit',
-      };
-    }
-  }, [currentView, buildings, floors, units]);
+  // Children of the current view's parent
+  const entities = useMemo(
+    () => nodes.filter((n) => n.parentId === currentView.parentId),
+    [nodes, currentView.parentId]
+  );
 
   const handleClick = useCallback(
     (e, entity) => {
       e.stopPropagation();
       if (activeTool === 'pen' || activeTool === 'hand' || activeTool === 'measure') return;
 
-      if (entityType === 'building') {
-        useEditorStore.getState().navigateToBuilding(entity.id);
-      } else if (entityType === 'floor') {
-        useEditorStore.getState().navigateToFloor(currentView.buildingId, entity.id);
-      } else if (entityType === 'unit') {
+      if (canDrillInto(entity.type)) {
+        useEditorStore.getState().navigateInto(entity.id);
+      } else {
         if (e.shiftKey) {
           useEditorStore.getState().toggleMultiSelect(entity.id);
         } else {
-          useEditorStore.getState().selectUnit(entity.id);
+          useEditorStore.getState().selectNode(entity.id);
         }
       }
     },
-    [activeTool, entityType, currentView.buildingId]
+    [activeTool]
   );
 
   const handleDoubleClick = useCallback(
     (e, entity) => {
       e.stopPropagation();
       if (activeTool !== 'select') return;
-
-      if (entityType === 'building') {
-        useEditorStore.getState().navigateToBuilding(entity.id);
-      } else if (entityType === 'floor') {
-        useEditorStore.getState().navigateToFloor(currentView.buildingId, entity.id);
+      if (canDrillInto(entity.type)) {
+        useEditorStore.getState().navigateInto(entity.id);
       }
     },
-    [activeTool, entityType, currentView.buildingId]
+    [activeTool]
   );
 
+  const leaveTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(leaveTimerRef.current), []);
+
   const handleEnter = useCallback((entity) => {
-    useEditorStore.getState().setHoveredEntity(entity.id, entityType);
-  }, [entityType]);
+    clearTimeout(leaveTimerRef.current);
+    useEditorStore.getState().setHoveredNode(entity.id);
+  }, []);
 
   const handleLeave = useCallback(() => {
-    useEditorStore.getState().clearHoveredEntity();
+    clearTimeout(leaveTimerRef.current);
+    leaveTimerRef.current = setTimeout(() => {
+      useEditorStore.getState().clearHoveredNode();
+    }, 300);
+  }, []);
+
+  const handleDelete = useCallback(
+    (e, entity) => {
+      e.stopPropagation();
+      e.preventDefault();
+      const typeDef = NODE_TYPES[entity.type];
+      const name = entity.name || typeDef?.label || 'Item';
+      if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+
+      useProjectStore.getState().removeNode(entity.id);
+      useEditorStore.getState().clearHoveredNode();
+      useEditorStore.getState().deselectNode();
+      useToastStore.getState().show(`${name} deleted`, 'info');
+    },
+    []
+  );
+
+  const getDeletePos = useCallback((entity) => {
+    if (!entity?.points?.length) return null;
+    const xs = entity.points.map((p) => p.x);
+    const ys = entity.points.map((p) => p.y);
+    return { x: Math.max(...xs) - 2, y: Math.min(...ys) + 2 };
   }, []);
 
   return (
@@ -90,43 +90,23 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
       {entities.map((entity) => {
         if (!entity.points || entity.points.length < 3) return null;
 
-        const isHovered = hoveredEntityId === entity.id;
+        const colors = getNodeColors(entity);
+        const isHovered = hoveredNodeId === entity.id;
+        const isSelected = selectedNodeIds.includes(entity.id);
         const pointsStr = entity.points.map((p) => `${p.x},${p.y}`).join(' ');
+        const typeDef = NODE_TYPES[entity.type];
+        const isDrillable = canDrillInto(entity.type);
 
-        if (entityType === 'unit') {
-          // Unit rendering (existing behavior)
-          const status = STATUS[entity.status] || STATUS.available;
-          const isSelected = selectedUnitIds.includes(entity.id);
-          return (
-            <polygon
-              key={entity.id}
-              points={pointsStr}
-              fill={isHovered && !isSelected ? status.fillHover : status.fill}
-              stroke={isSelected ? '#818cf8' : status.stroke}
-              strokeWidth={isHovered || isSelected ? 0.6 : 0.4}
-              className={`unit-polygon ${isSelected ? 'selected' : ''}`}
-              data-id={entity.id}
-              data-type="unit"
-              onMouseEnter={() => handleEnter(entity)}
-              onMouseLeave={handleLeave}
-              onClick={(e) => handleClick(e, entity)}
-              onDoubleClick={(e) => handleDoubleClick(e, entity)}
-            />
-          );
-        }
-
-        // Building or Floor rendering
-        const colors = ENTITY_COLORS[entityType];
         return (
           <polygon
             key={entity.id}
             points={pointsStr}
-            fill={isHovered ? colors.fillHover : colors.fill}
-            stroke={colors.stroke}
-            strokeWidth={isHovered ? 0.6 : 0.4}
-            className={`entity-polygon entity-${entityType}`}
+            fill={isHovered && !isSelected ? colors.fillHover : colors.fill}
+            stroke={isSelected ? '#818cf8' : colors.stroke}
+            strokeWidth={isHovered || isSelected ? 0.6 : 0.4}
+            className={`entity-polygon entity-${entity.type}${isSelected ? ' selected' : ''}`}
             data-id={entity.id}
-            data-type={entityType}
+            data-type={entity.type}
             style={{ cursor: activeTool === 'select' ? 'pointer' : 'default' }}
             onMouseEnter={() => handleEnter(entity)}
             onMouseLeave={handleLeave}
@@ -136,29 +116,52 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
         );
       })}
 
-      {/* Labels for building/floor polygons */}
-      {entityType !== 'unit' &&
-        entities.map((entity) => {
-          if (!entity.points || entity.points.length < 3) return null;
-          // Calculate centroid
-          const cx = entity.points.reduce((s, p) => s + p.x, 0) / entity.points.length;
-          const cy = entity.points.reduce((s, p) => s + p.y, 0) / entity.points.length;
-          return (
-            <text
-              key={`label-${entity.id}`}
-              x={cx} y={cy}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fill="var(--text-primary, #fff)"
-              fontSize="2.5"
-              fontWeight="600"
-              fontFamily="Inter, system-ui, sans-serif"
-              style={{ pointerEvents: 'none' }}
-            >
-              {entity.name}
-            </text>
-          );
-        })}
+      {/* Labels for non-status entities (buildings, floors, rooms, balconies) */}
+      {entities.map((entity) => {
+        if (!entity.points || entity.points.length < 3) return null;
+        const typeDef = NODE_TYPES[entity.type];
+        if (typeDef?.hasStatus) return null; // Apartments show via tooltip
+        const cx = entity.points.reduce((s, p) => s + p.x, 0) / entity.points.length;
+        const cy = entity.points.reduce((s, p) => s + p.y, 0) / entity.points.length;
+        return (
+          <text
+            key={`label-${entity.id}`}
+            x={cx} y={cy}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fill="var(--text-primary, #fff)"
+            fontSize="2.5"
+            fontWeight="600"
+            fontFamily="Inter, system-ui, sans-serif"
+            style={{ pointerEvents: 'none' }}
+          >
+            {entity.name}
+          </text>
+        );
+      })}
+
+      {/* Delete button — appears on hover at top-right corner */}
+      {hoveredNodeId && activeTool === 'select' && (() => {
+        const entity = entities.find((e) => e.id === hoveredNodeId);
+        if (!entity?.points?.length) return null;
+        const pos = getDeletePos(entity);
+        if (!pos) return null;
+        return (
+          <g
+            className="pv-svg-delete-btn"
+            transform={`translate(${pos.x}, ${pos.y})`}
+            onMouseEnter={() => clearTimeout(leaveTimerRef.current)}
+            onMouseLeave={handleLeave}
+            onClick={(e) => handleDelete(e, entity)}
+            style={{ cursor: 'pointer' }}
+          >
+            <circle r="3.2" fill="transparent" />
+            <circle className="pv-del-bg" r="2" />
+            <line x1="-0.65" y1="-0.65" x2="0.65" y2="0.65" stroke="white" strokeWidth="0.5" strokeLinecap="round" />
+            <line x1="0.65" y1="-0.65" x2="-0.65" y2="0.65" stroke="white" strokeWidth="0.5" strokeLinecap="round" />
+          </g>
+        );
+      })()}
     </g>
   );
 });

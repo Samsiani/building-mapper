@@ -3,14 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEditorStore } from '../../../stores/editorStore';
 import SidebarBrand from './SidebarBrand';
 import ProjectConfigPanel from './ProjectConfigPanel';
-import BuildingConfigPanel from './BuildingConfigPanel';
-import BuildingCreatePanel from './BuildingCreatePanel';
-import BuildingEditPanel from './BuildingEditPanel';
-import FloorConfigPanel from './FloorConfigPanel';
-import FloorCreatePanel from './FloorCreatePanel';
-import FloorEditPanel from './FloorEditPanel';
-import UnitEditPanel from './UnitEditPanel';
-import UnitCreatePanel from './UnitCreatePanel';
+import NodeConfigPanel from './NodeConfigPanel';
+import NodeCreatePanel from './NodeCreatePanel';
+import NodeEditPanel from './NodeEditPanel';
 import BulkEditPanel from './BulkEditPanel';
 import AnalyticsPanel from './AnalyticsPanel';
 
@@ -25,32 +20,17 @@ const Sidebar = memo(function Sidebar() {
   const currentView = useEditorStore((s) => s.currentView);
   const pendingCreationType = useEditorStore((s) => s.pendingCreationType);
 
-  // Determine which panel to show
-  const panelKey = `${sidebarMode}-${currentView.level}-${pendingCreationType || ''}`;
+  const panelKey = `${sidebarMode}-${currentView.parentId}-${pendingCreationType || ''}`;
 
   const renderPanel = () => {
-    // Analytics and bulk are level-independent
     if (sidebarMode === 'analytics') return <AnalyticsPanel />;
     if (sidebarMode === 'bulk') return <BulkEditPanel />;
+    if (sidebarMode === 'create') return <NodeCreatePanel />;
+    if (sidebarMode === 'edit') return <NodeEditPanel />;
 
-    // Create mode — depends on what's being created
-    if (sidebarMode === 'create') {
-      if (pendingCreationType === 'building') return <BuildingCreatePanel />;
-      if (pendingCreationType === 'floor') return <FloorCreatePanel />;
-      return <UnitCreatePanel />;
-    }
-
-    // Edit mode — depends on current level
-    if (sidebarMode === 'edit') {
-      if (currentView.level === 'global') return <BuildingEditPanel />;
-      if (currentView.level === 'building') return <FloorEditPanel />;
-      return <UnitEditPanel />;
-    }
-
-    // Config mode — depends on current level
-    if (currentView.level === 'global') return <ProjectConfigPanel />;
-    if (currentView.level === 'building') return <BuildingConfigPanel />;
-    return <FloorConfigPanel />;
+    // Config mode
+    if (currentView.parentId === null) return <ProjectConfigPanel />;
+    return <NodeConfigPanel />;
   };
 
   return (

@@ -2,13 +2,12 @@ import { useRef, useEffect, memo } from 'react';
 import { useEditorStore } from '../../../stores/editorStore';
 import { useProjectStore } from '../../../stores/projectStore';
 import { renderBuilding } from '../../../utils/buildingRenderer';
+import { NODE_TYPES } from '../../../utils/nodeTypes';
 
 const BackgroundLayer = memo(function BackgroundLayer({ theme }) {
   const currentView = useEditorStore((s) => s.currentView);
   const visible = useEditorStore((s) => s.buildingLayerVisible);
-
-  const buildings = useProjectStore((s) => s.buildings);
-  const floors = useProjectStore((s) => s.floors);
+  const nodes = useProjectStore((s) => s.nodes);
   const projectConfig = useProjectStore((s) => s.projectConfig);
 
   const layerRef = useRef(null);
@@ -18,45 +17,40 @@ const BackgroundLayer = memo(function BackgroundLayer({ theme }) {
   let backgroundImage = null;
   let proceduralConfig = null;
 
-  if (currentView.level === 'global') {
-    // Global level: no background by default (just grid)
-    backgroundImage = null;
-  } else if (currentView.level === 'building') {
-    const building = buildings.find((b) => b.id === currentView.buildingId);
-    if (building?.backgroundImage) {
-      backgroundImage = building.backgroundImage;
-    } else if (building) {
-      // Fallback to procedural renderer
-      proceduralConfig = {
-        buildingName: building.name,
-        floors: building.floors || 6,
-        unitsPerFloor: building.unitsPerFloor || 4,
-        companyName: projectConfig.companyName,
-      };
+  if (currentView.parentId === null) {
+    // Root level — use site background
+    backgroundImage = projectConfig.siteBackgroundImage || null;
+  } else {
+    // Inside a node — check the parent node
+    const parentNode = nodes.find((n) => n.id === currentView.parentId);
+    if (parentNode) {
+      const typeDef = NODE_TYPES[parentNode.type];
+      if (parentNode.backgroundImage) {
+        backgroundImage = parentNode.backgroundImage;
+      } else if (typeDef?.hasProceduralFallback) {
+        proceduralConfig = {
+          buildingName: parentNode.name,
+          floors: parentNode.floors || 6,
+          unitsPerFloor: parentNode.unitsPerFloor || 4,
+          companyName: projectConfig.companyName,
+        };
+      }
     }
-  } else if (currentView.level === 'floor') {
-    const floor = floors.find((f) => f.id === currentView.floorId);
-    if (floor?.backgroundImage) {
-      backgroundImage = floor.backgroundImage;
-    }
-    // No procedural fallback for floor level
   }
 
-  // Render procedural building when at building level with no image
+  // Render procedural building when applicable
   useEffect(() => {
     if (!layerRef.current || !defsRef.current) return;
     if (proceduralConfig) {
       renderBuilding(layerRef.current, defsRef.current, proceduralConfig, theme);
     } else {
-      // Clear procedural content
       layerRef.current.innerHTML = '';
     }
-  }, [proceduralConfig?.buildingName, proceduralConfig?.floors, proceduralConfig?.unitsPerFloor, proceduralConfig?.companyName, theme, currentView.level, currentView.buildingId]);
+  }, [proceduralConfig?.buildingName, proceduralConfig?.floors, proceduralConfig?.unitsPerFloor, proceduralConfig?.companyName, theme, currentView.parentId]);
 
   return (
     <>
       <defs ref={defsRef} />
-      {/* Background image */}
       {backgroundImage && (
         <image
           href={backgroundImage}
@@ -67,9 +61,7 @@ const BackgroundLayer = memo(function BackgroundLayer({ theme }) {
           style={{ transition: 'opacity 300ms' }}
         />
       )}
-      {/* Procedural building renderer */}
       <g ref={layerRef} opacity={visible ? 1 : 0} style={{ transition: 'opacity 300ms' }} />
-      {/* Subtle grid placeholder when no background at global/floor level */}
       {!backgroundImage && !proceduralConfig && (
         <g opacity="0.08">
           {Array.from({ length: 10 }, (_, i) => (

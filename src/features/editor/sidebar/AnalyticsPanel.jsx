@@ -1,43 +1,64 @@
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useEditorStore } from '../../../stores/editorStore';
+import { NODE_TYPES, canDrillInto } from '../../../utils/nodeTypes';
 import { STATUS } from '../../../utils/constants';
 import { formatPrice } from '../../../utils/formatPrice';
 
 const AnalyticsPanel = memo(function AnalyticsPanel() {
-  const allUnits = useProjectStore((s) => s.units);
-  const floors = useProjectStore((s) => s.floors);
+  const nodes = useProjectStore((s) => s.nodes);
   const config = useProjectStore((s) => s.projectConfig);
   const currentView = useEditorStore((s) => s.currentView);
 
-  // Scope units to current level
-  const units = useMemo(() => {
-    if (currentView.level === 'floor') {
-      return allUnits.filter((u) => u.floorId === currentView.floorId);
+  // Collect all apartment-type descendants under the current view
+  const getApartmentDescendants = useCallback((parentId) => {
+    const result = [];
+    const queue = [parentId];
+    while (queue.length > 0) {
+      const current = queue.shift();
+      for (const n of nodes) {
+        if (n.parentId === current) {
+          if (NODE_TYPES[n.type]?.hasStatus) result.push(n);
+          if (canDrillInto(n.type)) queue.push(n.id);
+        }
+      }
     }
-    if (currentView.level === 'building') {
-      const floorIds = floors.filter((f) => f.buildingId === currentView.buildingId).map((f) => f.id);
-      return allUnits.filter((u) => floorIds.includes(u.floorId));
-    }
-    return allUnits;
-  }, [allUnits, floors, currentView]);
+    return result;
+  }, [nodes]);
 
-  const scopeLabel = currentView.level === 'floor' ? 'Floor' : currentView.level === 'building' ? 'Building' : 'Project';
+  const apartments = useMemo(() => {
+    if (currentView.parentId === null) {
+      // Root: all apartments in the project
+      return nodes.filter((n) => NODE_TYPES[n.type]?.hasStatus);
+    }
+    // Direct hasStatus children + deeper descendants
+    const directChildren = nodes.filter((n) => n.parentId === currentView.parentId);
+    const direct = directChildren.filter((n) => NODE_TYPES[n.type]?.hasStatus);
+    const deeper = directChildren.filter((n) => canDrillInto(n.type)).flatMap((n) => getApartmentDescendants(n.id));
+    return [...direct, ...deeper];
+  }, [nodes, currentView.parentId, getApartmentDescendants]);
+
+  // Scope label from parent node
+  const scopeLabel = useMemo(() => {
+    if (currentView.parentId === null) return 'Project';
+    const parent = nodes.find((n) => n.id === currentView.parentId);
+    return parent ? NODE_TYPES[parent.type]?.label || 'Scope' : 'Scope';
+  }, [nodes, currentView.parentId]);
 
   const stats = useMemo(() => {
-    const total = units.length;
+    const total = apartments.length;
     const byStatus = {};
     Object.keys(STATUS).forEach((k) => { byStatus[k] = 0; });
-    units.forEach((u) => { byStatus[u.status] = (byStatus[u.status] || 0) + 1; });
+    apartments.forEach((u) => { byStatus[u.status] = (byStatus[u.status] || 0) + 1; });
 
-    const totalRevenue = units.reduce((s, u) => s + (u.price || 0), 0);
-    const soldRevenue = units.filter((u) => u.status === 'sold').reduce((s, u) => s + u.price, 0);
-    const availableRevenue = units.filter((u) => u.status === 'available').reduce((s, u) => s + u.price, 0);
-    const totalArea = units.reduce((s, u) => s + (u.area || 0), 0);
+    const totalRevenue = apartments.reduce((s, u) => s + (u.price || 0), 0);
+    const soldRevenue = apartments.filter((u) => u.status === 'sold').reduce((s, u) => s + u.price, 0);
+    const availableRevenue = apartments.filter((u) => u.status === 'available').reduce((s, u) => s + u.price, 0);
+    const totalArea = apartments.reduce((s, u) => s + (u.area || 0), 0);
     const avgPrice = total > 0 ? totalRevenue / total : 0;
     const avgArea = total > 0 ? totalArea / total : 0;
-    const prices = units.filter((u) => u.price > 0).map((u) => u.price);
+    const prices = apartments.filter((u) => u.price > 0).map((u) => u.price);
     const minPrice = prices.length ? Math.min(...prices) : 0;
     const maxPrice = prices.length ? Math.max(...prices) : 0;
 
@@ -45,7 +66,7 @@ const AnalyticsPanel = memo(function AnalyticsPanel() {
       total, byStatus, totalRevenue, soldRevenue, availableRevenue,
       totalArea, avgPrice, avgArea, minPrice, maxPrice,
     };
-  }, [units]);
+  }, [apartments]);
 
   const donutSegments = useMemo(() => {
     const entries = Object.entries(stats.byStatus).filter(([, v]) => v > 0);
@@ -92,7 +113,7 @@ const AnalyticsPanel = memo(function AnalyticsPanel() {
               />
             ))}
             <text x="21" y="19" textAnchor="middle" fill="var(--text-primary)" fontSize="8" fontWeight="700" fontFamily="Inter">{stats.total}</text>
-            <text x="21" y="26" textAnchor="middle" fill="var(--text-tertiary)" fontSize="3.5" fontFamily="Inter">UNITS</text>
+            <text x="21" y="26" textAnchor="middle" fill="var(--text-tertiary)" fontSize="3.5" fontFamily="Inter">APARTMENTS</text>
           </svg>
           <div className="flex flex-col gap-1.5">
             {donutSegments.map((seg) => (
