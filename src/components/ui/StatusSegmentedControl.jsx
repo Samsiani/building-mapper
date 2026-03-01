@@ -33,7 +33,7 @@ export default function StatusSegmentedControl({ value, onChange }) {
           onClick={() => onChange(key)}
         >
           <span
-            className="w-[7px] h-[7px] rounded-full flex-shrink-0"
+            className="w-[6px] h-[6px] rounded-full flex-shrink-0"
             style={{ background: s.color }}
           />
           {s.label}

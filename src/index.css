@@ -224,7 +224,7 @@ html, body, #root {
   border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   padding: 3px;
-  gap: 2px;
+  gap: 1px;
 }
 
 .status-btn {
@@ -232,14 +232,14 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 4px;
+  gap: 3px;
+  padding: 7px 2px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 10.5px;
+  font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
   z-index: 1;
