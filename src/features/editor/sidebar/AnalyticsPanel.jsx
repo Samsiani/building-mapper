@@ -54,7 +54,7 @@ const AnalyticsPanel = memo(function AnalyticsPanel() {
 
     const totalRevenue = apartments.reduce((s, u) => s + (u.price || 0), 0);
     const soldRevenue = apartments.filter((u) => u.status === 'sold').reduce((s, u) => s + u.price, 0);
-    const availableRevenue = apartments.filter((u) => u.status === 'available').reduce((s, u) => s + u.price, 0);
+    const availableRevenue = apartments.filter((u) => u.status === 'for_sale' || u.status === 'for_rent').reduce((s, u) => s + u.price, 0);
     const totalArea = apartments.reduce((s, u) => s + (u.area || 0), 0);
     const avgPrice = total > 0 ? totalRevenue / total : 0;
     const avgArea = total > 0 ? totalArea / total : 0;
@@ -113,7 +113,7 @@ const AnalyticsPanel = memo(function AnalyticsPanel() {
               />
             ))}
             <text x="21" y="19" textAnchor="middle" fill="var(--text-primary)" fontSize="8" fontWeight="700" fontFamily="Inter">{stats.total}</text>
-            <text x="21" y="26" textAnchor="middle" fill="var(--text-tertiary)" fontSize="3.5" fontFamily="Inter">APARTMENTS</text>
+            <text x="21" y="26" textAnchor="middle" fill="var(--text-tertiary)" fontSize="3.5" fontFamily="Inter">UNITS</text>
           </svg>
           <div className="flex flex-col gap-1.5">
             {donutSegments.map((seg) => (

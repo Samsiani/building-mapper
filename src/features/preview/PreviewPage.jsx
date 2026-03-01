@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useProjectStore } from '../../stores/projectStore';
 import { NODE_TYPES, canDrillInto } from '../../utils/nodeTypes';
+import { STATUS } from '../../utils/constants';
 import PreviewBuilding from './PreviewBuilding';
 import PreviewLegend from './PreviewLegend';
 import PreviewStats from './PreviewStats';
@@ -135,11 +136,9 @@ export default function PreviewPage() {
 
   const stats = {
     total: currentApartments.length,
-    available: currentApartments.filter((u) => u.status === 'available').length,
-    reserved: currentApartments.filter((u) => u.status === 'reserved').length,
-    sold: currentApartments.filter((u) => u.status === 'sold').length,
+    ...Object.fromEntries(Object.keys(STATUS).map((key) => [key, currentApartments.filter((u) => u.status === key).length])),
     minPrice: (() => {
-      const prices = currentApartments.filter((u) => u.status === 'available' && u.price > 0).map((u) => u.price);
+      const prices = currentApartments.filter((u) => u.status === 'for_sale' && u.price > 0).map((u) => u.price);
       return prices.length ? Math.min(...prices) : 0;
     })(),
   };

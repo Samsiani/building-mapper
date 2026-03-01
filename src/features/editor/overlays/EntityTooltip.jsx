@@ -37,7 +37,7 @@ const EntityTooltip = memo(function EntityTooltip({ position, containerRef }) {
 
   // Status-bearing nodes (apartments) — show price/area/status
   if (typeDef.hasStatus) {
-    const status = STATUS[node.status] || STATUS.available;
+    const status = STATUS[node.status] || STATUS.for_sale;
     return (
       <div ref={tooltipRef} className="ett" style={{ left: clamped.x, top: clamped.y }}>
         <div className="ett-card">

@@ -197,7 +197,7 @@ export const useProjectStore = create(
         exportData: () => {
           const { projectConfig, nodes } = get();
           return {
-            version: 3,
+            version: 4,
             projectConfig: { ...projectConfig },
             nodes: JSON.parse(JSON.stringify(nodes)),
           };
@@ -215,12 +215,16 @@ export const useProjectStore = create(
               _migrateV2(state, data);
               return;
             }
-            // V3: flat nodes
+            // V3/V4: flat nodes
             if (data.projectConfig) {
               state.projectConfig = { ...DEFAULT_PROJECT_CONFIG, ...data.projectConfig };
             }
             if (Array.isArray(data.nodes)) {
               state.nodes = data.nodes;
+            }
+            // Migrate V3 status values
+            if (!data.version || data.version < 4) {
+              _migrateStatusAvailableToForSale(state.nodes);
             }
             const allIds = state.nodes.map((n) => n.id);
             state.nextId = Math.max(...allIds, 0) + 1;
@@ -230,7 +234,7 @@ export const useProjectStore = create(
       })),
       {
         name: 'masterplan_data',
-        version: 3,
+        version: 4,
         partialize: (state) => ({
           projectConfig: state.projectConfig,
           nodes: state.nodes,
@@ -238,17 +242,28 @@ export const useProjectStore = create(
           annotations: state.annotations,
         }),
         migrate: (persisted, version) => {
-          // V1 → V3
+          // V1 → V4
           if (version === 0 || version === 1 || !version) {
             if (persisted.buildingConfig && !persisted.buildings) {
-              return _migrateV1Persist(persisted);
+              const result = _migrateV1Persist(persisted);
+              _migrateStatusAvailableToForSale(result.nodes);
+              return result;
             }
           }
-          // V2 → V3
+          // V2 → V4
           if (version === 2) {
             if (persisted.buildings && !persisted.nodes) {
-              return _migrateV2Persist(persisted);
+              const result = _migrateV2Persist(persisted);
+              _migrateStatusAvailableToForSale(result.nodes);
+              return result;
             }
+          }
+          // V3 → V4
+          if (version === 3) {
+            if (Array.isArray(persisted.nodes)) {
+              _migrateStatusAvailableToForSale(persisted.nodes);
+            }
+            return persisted;
           }
           return persisted;
         },
@@ -375,4 +390,12 @@ function _migrateV2Persist(persisted) {
     nextId: Math.max(...nodes.map((n) => n.id), persisted.nextId || 0, 0) + 1,
     annotations: persisted.annotations || [],
   };
+}
+
+function _migrateStatusAvailableToForSale(nodes) {
+  for (const n of nodes) {
+    if (n.status === 'available') {
+      n.status = 'for_sale';
+    }
+  }
 }

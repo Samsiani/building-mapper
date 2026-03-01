@@ -60,6 +60,13 @@ const NodeConfigPanel = memo(function NodeConfigPanel() {
           value={parentNode.name} onChange={handleChange('name')}
         />
 
+        {(parentNode.type === 'neighborhood' || parentNode.type === 'phase' || parentNode.type === 'villa') && (
+          <FloatingInput
+            label="Description" id="cfg-node-desc"
+            value={parentNode.description || ''} onChange={handleChange('description')}
+          />
+        )}
+
         {parentNode.type === 'building' && (
           <>
             <FloatingInput

@@ -27,14 +27,19 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
     ? nodes.find((n) => n.id === pendingCreationParentId)
     : null;
   const parentType = parentNode?.type || null;
-  const allowedTypes = getAllowedChildTypes(parentType);
+  let grandparentType = null;
+  if (parentNode?.parentId != null) {
+    const gpNode = nodes.find((n) => n.id === parentNode.parentId);
+    grandparentType = gpNode?.type || null;
+  }
+  const allowedTypes = getAllowedChildTypes(parentType, grandparentType);
 
   const [selectedType, setSelectedType] = useState(pendingCreationType || (allowedTypes.length === 1 ? allowedTypes[0] : null));
   const [form, setForm] = useState({
     name: '', description: '', area: '', price: '', rooms: 1,
-    balcony: false, orientation: 'North', status: 'available', notes: '',
+    balcony: false, orientation: 'North', status: 'for_sale', notes: '',
     floorNumber: '', floors: 6, unitsPerFloor: 4, backgroundImage: null,
-    roomType: 'living',
+    roomType: 'living', entrance: 1,
   });
 
   const typeDef = selectedType ? NODE_TYPES[selectedType] : null;
@@ -67,16 +72,26 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
       data.notes = form.notes;
     }
 
+    if (selectedType === 'neighborhood' || selectedType === 'phase') {
+      data.description = form.description;
+    }
+
+    if (selectedType === 'villa') {
+      data.description = form.description;
+    }
+
     if (selectedType === 'building') {
       data.description = form.description;
       data.floors = parseInt(form.floors) || 6;
       data.unitsPerFloor = parseInt(form.unitsPerFloor) || 4;
-      data.backgroundImage = form.backgroundImage;
     }
 
     if (selectedType === 'floor') {
       data.floorNumber = parseInt(form.floorNumber) || 1;
-      data.backgroundImage = form.backgroundImage;
+    }
+
+    if (selectedType === 'apartment') {
+      data.entrance = parseInt(form.entrance) || 1;
     }
 
     if (selectedType === 'room') {
@@ -87,6 +102,9 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
     if (selectedType === 'balcony') {
       data.area = parseFloat(form.area) || 0;
     }
+
+    // Universal background image for all types
+    data.backgroundImage = form.backgroundImage;
 
     const node = createNode(data);
     setPendingPoints(null);
@@ -153,6 +171,21 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
             />
+
+            {(selectedType === 'neighborhood' || selectedType === 'phase') && (
+              <>
+                <FloatingInput
+                  label="Description" id="f-node-desc"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                />
+                <ImageUpload
+                  value={form.backgroundImage}
+                  onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+                  label={`${typeDef.label} Image (optional)`}
+                />
+              </>
+            )}
 
             {selectedType === 'building' && (
               <>
@@ -244,7 +277,29 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
                   />
                   <label htmlFor="f-node-notes">Notes</label>
                 </div>
+                {selectedType === 'villa' && (
+                  <>
+                    <FloatingInput
+                      label="Description" id="f-node-desc"
+                      value={form.description}
+                      onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                    />
+                    <ImageUpload
+                      value={form.backgroundImage}
+                      onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+                      label="Villa Image (optional)"
+                    />
+                  </>
+                )}
               </>
+            )}
+
+            {selectedType === 'apartment' && (
+              <FloatingInput
+                label="Entrance" id="f-node-entrance" type="number"
+                value={form.entrance} min="1"
+                onChange={(e) => setForm((f) => ({ ...f, entrance: e.target.value }))}
+              />
             )}
 
             {selectedType === 'room' && (
@@ -260,15 +315,27 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
                   options={['living', 'bedroom', 'kitchen', 'bathroom', 'storage']}
                   onChange={(e) => setForm((f) => ({ ...f, roomType: e.target.value }))}
                 />
+                <ImageUpload
+                  value={form.backgroundImage}
+                  onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+                  label="Room Image (optional)"
+                />
               </>
             )}
 
             {selectedType === 'balcony' && (
-              <FloatingInput
-                label="Area (m²)" id="f-node-area" type="number"
-                value={form.area} min="0"
-                onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
-              />
+              <>
+                <FloatingInput
+                  label="Area (m²)" id="f-node-area" type="number"
+                  value={form.area} min="0"
+                  onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
+                />
+                <ImageUpload
+                  value={form.backgroundImage}
+                  onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+                  label="Balcony Image (optional)"
+                />
+              </>
             )}
           </>
         )}

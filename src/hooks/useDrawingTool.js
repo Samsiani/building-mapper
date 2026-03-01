@@ -37,12 +37,18 @@ export function useDrawingTool() {
 
     // Determine what type of parent we're inside
     let parentType = null;
+    let grandparentType = null;
     if (parentId !== null) {
-      const parentNode = useProjectStore.getState().nodes.find((n) => n.id === parentId);
+      const nodes = useProjectStore.getState().nodes;
+      const parentNode = nodes.find((n) => n.id === parentId);
       parentType = parentNode?.type || null;
+      if (parentNode?.parentId != null) {
+        const grandparentNode = nodes.find((n) => n.id === parentNode.parentId);
+        grandparentType = grandparentNode?.type || null;
+      }
     }
 
-    const allowedTypes = getAllowedChildTypes(parentType);
+    const allowedTypes = getAllowedChildTypes(parentType, grandparentType);
 
     setDrawingPoints([]);
 

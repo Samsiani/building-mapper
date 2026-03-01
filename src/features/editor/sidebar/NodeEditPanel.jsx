@@ -35,13 +35,14 @@ const NodeEditPanel = memo(function NodeEditPanel() {
         rooms: node.rooms || 1,
         balcony: node.balcony || false,
         orientation: node.orientation || 'North',
-        status: node.status || 'available',
+        status: node.status || 'for_sale',
         notes: node.notes || '',
         floorNumber: node.floorNumber || 1,
         floors: node.floors || 6,
         unitsPerFloor: node.unitsPerFloor || 4,
         backgroundImage: node.backgroundImage || null,
         roomType: node.roomType || 'living',
+        entrance: node.entrance || 1,
       });
     }
   }, [node]);
@@ -54,16 +55,22 @@ const NodeEditPanel = memo(function NodeEditPanel() {
 
     const data = { name: form.name };
 
+    if (node.type === 'neighborhood' || node.type === 'phase') {
+      data.description = form.description;
+    }
+
+    if (node.type === 'villa') {
+      data.description = form.description;
+    }
+
     if (node.type === 'building') {
       data.description = form.description;
       data.floors = parseInt(form.floors) || 6;
       data.unitsPerFloor = parseInt(form.unitsPerFloor) || 4;
-      data.backgroundImage = form.backgroundImage;
     }
 
     if (node.type === 'floor') {
       data.floorNumber = parseInt(form.floorNumber) || 1;
-      data.backgroundImage = form.backgroundImage;
     }
 
     if (typeDef?.hasStatus) {
@@ -76,6 +83,10 @@ const NodeEditPanel = memo(function NodeEditPanel() {
       data.notes = form.notes;
     }
 
+    if (node.type === 'apartment') {
+      data.entrance = parseInt(form.entrance) || 1;
+    }
+
     if (node.type === 'room') {
       data.area = parseFloat(form.area) || 0;
       data.roomType = form.roomType;
@@ -84,6 +95,9 @@ const NodeEditPanel = memo(function NodeEditPanel() {
     if (node.type === 'balcony') {
       data.area = parseFloat(form.area) || 0;
     }
+
+    // Universal background image for all types
+    data.backgroundImage = form.backgroundImage;
 
     updateNode(selectedNodeId, data);
     toast(`${typeDef?.label || 'Entity'} updated successfully`, 'success');
@@ -113,6 +127,21 @@ const NodeEditPanel = memo(function NodeEditPanel() {
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
         />
+
+        {(node.type === 'neighborhood' || node.type === 'phase') && (
+          <>
+            <FloatingInput
+              label="Description" id="f-edit-desc"
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <ImageUpload
+              value={form.backgroundImage}
+              onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+              label={`${typeDef.label} Image`}
+            />
+          </>
+        )}
 
         {node.type === 'building' && (
           <>
@@ -204,7 +233,29 @@ const NodeEditPanel = memo(function NodeEditPanel() {
               />
               <label htmlFor="f-edit-notes">Notes</label>
             </div>
+            {node.type === 'villa' && (
+              <>
+                <FloatingInput
+                  label="Description" id="f-edit-desc"
+                  value={form.description}
+                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                />
+                <ImageUpload
+                  value={form.backgroundImage}
+                  onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+                  label="Villa Image"
+                />
+              </>
+            )}
           </>
+        )}
+
+        {node.type === 'apartment' && (
+          <FloatingInput
+            label="Entrance" id="f-edit-entrance" type="number"
+            value={form.entrance} min="1"
+            onChange={(e) => setForm((f) => ({ ...f, entrance: e.target.value }))}
+          />
         )}
 
         {node.type === 'room' && (
@@ -220,15 +271,27 @@ const NodeEditPanel = memo(function NodeEditPanel() {
               options={['living', 'bedroom', 'kitchen', 'bathroom', 'storage']}
               onChange={(e) => setForm((f) => ({ ...f, roomType: e.target.value }))}
             />
+            <ImageUpload
+              value={form.backgroundImage}
+              onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+              label="Room Image"
+            />
           </>
         )}
 
         {node.type === 'balcony' && (
-          <FloatingInput
-            label="Area (m²)" id="f-edit-area" type="number"
-            value={form.area} min="0"
-            onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
-          />
+          <>
+            <FloatingInput
+              label="Area (m²)" id="f-edit-area" type="number"
+              value={form.area} min="0"
+              onChange={(e) => setForm((f) => ({ ...f, area: e.target.value }))}
+            />
+            <ImageUpload
+              value={form.backgroundImage}
+              onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
+              label="Balcony Image"
+            />
+          </>
         )}
       </div>
 

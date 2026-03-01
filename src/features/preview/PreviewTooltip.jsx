@@ -28,7 +28,7 @@ export default function PreviewTooltip({ entity, nodes, position, currency }) {
 
   // Status-bearing entities (apartments) — show price/area/status
   if (typeDef.hasStatus) {
-    const status = STATUS[entity.status] || STATUS.available;
+    const status = STATUS[entity.status] || STATUS.for_sale;
     return (
       <div ref={tooltipRef} className="pvtt" style={{ left: clamped.x, top: clamped.y }}>
         <div className="pvtt-card">

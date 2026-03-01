@@ -1,10 +1,24 @@
 export const STATUS = {
-  available: {
-    label: 'Available',
+  for_sale: {
+    label: 'For Sale',
     color: '#22c55e',
     fill: 'rgba(34, 197, 94, 0.25)',
     fillHover: 'rgba(34, 197, 94, 0.50)',
     stroke: '#22c55e',
+  },
+  for_rent: {
+    label: 'For Rent',
+    color: '#3b82f6',
+    fill: 'rgba(59, 130, 246, 0.25)',
+    fillHover: 'rgba(59, 130, 246, 0.50)',
+    stroke: '#3b82f6',
+  },
+  rented: {
+    label: 'Rented',
+    color: '#a855f7',
+    fill: 'rgba(168, 85, 247, 0.25)',
+    fillHover: 'rgba(168, 85, 247, 0.50)',
+    stroke: '#a855f7',
   },
   reserved: {
     label: 'Reserved',
@@ -100,7 +114,7 @@ export const SEED_NODES = [
   {
     id: 5, parentId: 2, type: 'apartment',
     name: 'Unit A-101', area: 85, price: 245000, rooms: 3,
-    balcony: true, orientation: 'South', status: 'available',
+    balcony: true, orientation: 'South', status: 'for_sale',
     notes: 'Corner unit with sea view',
     points: [{ x: 16, y: 78 }, { x: 32, y: 78 }, { x: 32, y: 91 }, { x: 16, y: 91 }],
   },
@@ -122,7 +136,7 @@ export const SEED_NODES = [
   {
     id: 8, parentId: 4, type: 'apartment',
     name: 'Apt 301', area: 85, price: 285000, rooms: 3,
-    balcony: true, orientation: 'South', status: 'available',
+    balcony: true, orientation: 'South', status: 'for_sale',
     notes: 'Corner apartment with balcony, 3 bedrooms',
     points: [{ x: 5, y: 8 }, { x: 35, y: 8 }, { x: 35, y: 44 }, { x: 5, y: 44 }],
   },
@@ -143,7 +157,7 @@ export const SEED_NODES = [
   {
     id: 11, parentId: 4, type: 'apartment',
     name: 'Apt 304', area: 95, price: 310000, rooms: 3,
-    balcony: true, orientation: 'North', status: 'available',
+    balcony: true, orientation: 'North', status: 'for_sale',
     notes: '3-bedroom with garden-facing balcony',
     points: [{ x: 5, y: 56 }, { x: 35, y: 56 }, { x: 35, y: 92 }, { x: 5, y: 92 }],
   },

@@ -3,7 +3,7 @@ import { STATUS } from '../../utils/constants';
 
 const PreviewPolygon = memo(function PreviewPolygon({ unit, onHover, onLeave, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
-  const status = STATUS[unit.status] || STATUS.available;
+  const status = STATUS[unit.status] || STATUS.for_sale;
   const pointsStr = unit.points.map((p) => `${p.x},${p.y}`).join(' ');
 
   const handleEnter = useCallback(

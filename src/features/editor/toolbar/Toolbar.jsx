@@ -42,7 +42,12 @@ const Toolbar = memo(function Toolbar({ panZoom, measurement }) {
   const drawLabel = useMemo(() => {
     const parentNode = currentView.parentId !== null ? nodes.find((n) => n.id === currentView.parentId) : null;
     const parentType = parentNode?.type || null;
-    const allowed = getAllowedChildTypes(parentType);
+    let grandparentType = null;
+    if (parentNode?.parentId != null) {
+      const gpNode = nodes.find((n) => n.id === parentNode.parentId);
+      grandparentType = gpNode?.type || null;
+    }
+    const allowed = getAllowedChildTypes(parentType, grandparentType);
     if (allowed.length === 1) {
       return NODE_TYPES[allowed[0]]?.label?.toLowerCase() || 'entity';
     }

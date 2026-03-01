@@ -10,15 +10,11 @@ import { STATUS } from '../../utils/constants';
 import { formatPrice } from '../../utils/formatPrice';
 
 const STATUS_ICONS = {
-  available: CheckCircle2,
+  for_sale: CheckCircle2,
+  for_rent: CheckCircle2,
+  rented: Clock,
   reserved: Clock,
   sold: XCircle,
-};
-
-const STATUS_LABELS = {
-  available: 'Available',
-  reserved: 'Reserved',
-  sold: 'Sold',
 };
 
 export default function UnitDetailModal({ unit, config, onClose }) {
@@ -43,7 +39,7 @@ export default function UnitDetailModal({ unit, config, onClose }) {
 }
 
 function ModalContent({ unit, config, onClose }) {
-  const status = STATUS[unit.status] || STATUS.available;
+  const status = STATUS[unit.status] || STATUS.for_sale;
   const StatusIcon = STATUS_ICONS[unit.status] || CheckCircle2;
   const pricePerSqm = unit.area > 0 ? Math.round(unit.price / unit.area) : 0;
 
@@ -80,7 +76,7 @@ function ModalContent({ unit, config, onClose }) {
             <h2 className="udm-title">{unit.name}</h2>
             <div className="udm-badge" style={{ '--badge-color': status.color }}>
               <StatusIcon size={12} strokeWidth={2.5} />
-              {STATUS_LABELS[unit.status]}
+              {status.label}
             </div>
           </div>
           <button onClick={onClose} className="udm-close" aria-label="Close">
@@ -143,7 +139,7 @@ function ModalContent({ unit, config, onClose }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.18 }}
         >
-          {unit.status === 'available' ? (
+          {(unit.status === 'for_sale' || unit.status === 'for_rent') ? (
             <>
               <a href={mailto} className="udm-cta-primary">
                 <Mail size={15} strokeWidth={2} />
@@ -168,7 +164,9 @@ function ModalContent({ unit, config, onClose }) {
                 <div className="udm-status-sub">
                   {unit.status === 'reserved'
                     ? 'Contact us for availability updates'
-                    : 'This unit is no longer available'}
+                    : unit.status === 'rented'
+                      ? 'This unit is currently rented'
+                      : 'This unit is no longer available'}
                 </div>
               </div>
             </div>
