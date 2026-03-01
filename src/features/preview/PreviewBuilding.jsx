@@ -3,7 +3,7 @@ import { renderBuilding } from '../../utils/buildingRenderer';
 import { NODE_TYPES, getNodeColors, canDrillInto } from '../../utils/nodeTypes';
 import PreviewPolygon from './PreviewPolygon';
 
-export default function PreviewBuilding({ entities, backgroundImage, proceduralConfig, onHover, onLeave, onClick, onDelete }) {
+export default function PreviewBuilding({ entities, hasBackground, proceduralConfig, onHover, onLeave, onClick, onDelete }) {
   const layerRef = useRef(null);
   const defsRef = useRef(null);
   const svgRef = useRef(null);
@@ -68,18 +68,9 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
     >
       <defs ref={defsRef} />
 
-      {backgroundImage && (
-        <image
-          href={backgroundImage}
-          x="0" y="0"
-          width="100" height="100"
-          preserveAspectRatio="xMidYMid meet"
-        />
-      )}
-
       <g ref={layerRef} />
 
-      {!backgroundImage && !proceduralConfig && (
+      {!hasBackground && !proceduralConfig && (
         <g opacity="0.04">
           {Array.from({ length: 11 }, (_, i) => (
             <line key={`h${i}`} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="#888" strokeWidth="0.15" />

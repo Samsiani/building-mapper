@@ -3,30 +3,39 @@ import { formatPrice } from '../../utils/formatPrice';
 
 export default function PreviewStats({ stats, currency }) {
   return (
-    <footer className="pv-stats-bar">
-      <Stat label="Total" value={stats.total} />
-      {Object.entries(STATUS).map(([key, s]) => (
-        <span key={key} className="contents">
-          <span className="pv-stats-sep" />
-          <Stat label={s.label} value={stats[key] || 0} dot={s.color} />
-        </span>
-      ))}
-      {stats.minPrice > 0 && (
-        <>
-          <span className="pv-stats-sep" />
-          <Stat label="From" value={formatPrice(stats.minPrice, currency)} />
-        </>
-      )}
-    </footer>
-  );
-}
+    <aside className="pvs">
+      {/* Header */}
+      <div className="pvs-header">
+        <h2 className="pvs-name">Overview</h2>
+      </div>
 
-function Stat({ label, value, dot }) {
-  return (
-    <div className="pv-stats-item">
-      {dot && <span className="pv-stats-dot" style={{ background: dot }} />}
-      <span className="pv-stats-label">{label}</span>
-      <span className="pv-stats-value">{value}</span>
-    </div>
+      {/* Total */}
+      <div className="pvs-total-block">
+        <span className="pvs-total-value">{stats.total}</span>
+        <span className="pvs-total-label">Total Units</span>
+      </div>
+
+      {/* Status breakdown */}
+      <div className="pvs-section">
+        <h3 className="pvs-section-title">By Status</h3>
+        <div className="pvs-status-list">
+          {Object.entries(STATUS).map(([key, s]) => (
+            <div key={key} className="pvs-status-row">
+              <span className="pvs-status-row-dot" style={{ background: s.color }} />
+              <span className="pvs-status-row-label">{s.label}</span>
+              <span className="pvs-status-row-value">{stats[key] || 0}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Min price */}
+      {stats.minPrice > 0 && (
+        <div className="pvs-section">
+          <h3 className="pvs-section-title">Starting Price</h3>
+          <span className="pvs-min-price">{formatPrice(stats.minPrice, currency)}</span>
+        </div>
+      )}
+    </aside>
   );
 }

@@ -200,11 +200,18 @@ export default function PreviewPage() {
         </div>
       </header>
 
-      <main className={`pv-canvas-area${isUnitView ? ' pv-canvas-area--with-sidebar' : ''}`}>
-        <div className="pv-canvas-wrapper">
+      <main className="pv-canvas-area pv-canvas-area--with-sidebar">
+        <div
+          className="pv-canvas-wrapper"
+          style={backgroundImage ? {
+            backgroundImage: `url(${backgroundImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          } : undefined}
+        >
           <PreviewBuilding
             entities={entities}
-            backgroundImage={backgroundImage}
+            hasBackground={!!backgroundImage}
             proceduralConfig={proceduralConfig}
             onHover={(entity, pos) => { setHoveredEntity(entity); setTooltipPos(pos); }}
             onLeave={() => setHoveredEntity(null)}
@@ -212,12 +219,12 @@ export default function PreviewPage() {
             onDelete={handleDeleteRequest}
           />
         </div>
-        {isUnitView && (
+        {isUnitView ? (
           <PreviewDetailCard node={parentNode} currency={config.currency} config={displayConfig} />
+        ) : (
+          <PreviewStats stats={stats} currency={config.currency} />
         )}
       </main>
-
-      {!isUnitView && <PreviewStats stats={stats} currency={config.currency} />}
 
       <PreviewTooltip
         entity={hoveredEntity}

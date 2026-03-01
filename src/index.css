@@ -393,6 +393,7 @@ html, body, #root {
 }
 
 .pv-canvas-wrapper {
+  position: relative;
   width: 100%;
   height: 100%;
   background: var(--pv-surface);
@@ -728,50 +729,78 @@ html, body, #root {
   flex-shrink: 0;
 }
 
-/* ─── Bottom stats bar ─── */
-.pv-stats-bar {
-  flex-shrink: 0;
+/* ─── Stats sidebar inner elements ─── */
+.pvs-total-block {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-  padding: 10px 2.5%;
-  border-top: 1px solid var(--pv-border);
-  background: var(--pv-surface);
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--pv-border);
 }
 
-.pv-stats-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+.pvs-total-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--pv-text);
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 
-.pv-stats-dot {
+.pvs-total-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pv-text-muted);
+}
+
+.pvs-status-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pvs-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  transition: background 150ms;
+}
+
+.pvs-status-row:hover {
+  background: #f8f9fa;
+}
+
+.pvs-status-row-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
 }
 
-.pv-stats-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--pv-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.pvs-status-row-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pv-text-secondary);
 }
 
-.pv-stats-value {
-  font-size: 14px;
+.pvs-status-row-value {
+  font-size: 15px;
   font-weight: 700;
   color: var(--pv-text);
+  font-variant-numeric: tabular-nums;
 }
 
-.pv-stats-sep {
-  width: 1px;
-  height: 20px;
-  background: var(--pv-border);
-  flex-shrink: 0;
+.pvs-min-price {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--pv-gold), var(--pv-gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 /* ─── Breadcrumbs ─── */
@@ -1692,9 +1721,8 @@ html, body, #root {
 }
 
 @media (max-width: 640px) {
-  .pv-stats-bar {
-    gap: 12px;
-    flex-wrap: wrap;
+  .pvs {
+    width: 280px;
   }
 
   .pv-legend {
