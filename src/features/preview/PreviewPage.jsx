@@ -9,6 +9,7 @@ import PreviewTooltip from './PreviewTooltip';
 import UnitDetailModal from './UnitDetailModal';
 import NoDataFallback from './NoDataFallback';
 import PreviewBreadcrumbs from './PreviewBreadcrumbs';
+import PreviewDetailCard from './PreviewDetailCard';
 import ConfirmDialog from './ConfirmDialog';
 
 export default function PreviewPage() {
@@ -154,6 +155,7 @@ export default function PreviewPage() {
   // Info for topbar
   const parentNode = previewView.parentId !== null ? nodes.find((n) => n.id === previewView.parentId) : null;
   const hasStatusEntities = entities.some((n) => NODE_TYPES[n.type]?.hasStatus);
+  const isUnitView = parentNode && NODE_TYPES[parentNode.type]?.hasStatus;
 
   return (
     <div className="pv-page">
@@ -198,7 +200,7 @@ export default function PreviewPage() {
         </div>
       </header>
 
-      <main className="pv-canvas-area">
+      <main className={`pv-canvas-area${isUnitView ? ' pv-canvas-area--with-sidebar' : ''}`}>
         <div className="pv-canvas-wrapper">
           <PreviewBuilding
             entities={entities}
@@ -210,9 +212,12 @@ export default function PreviewPage() {
             onDelete={handleDeleteRequest}
           />
         </div>
+        {isUnitView && (
+          <PreviewDetailCard node={parentNode} currency={config.currency} config={displayConfig} />
+        )}
       </main>
 
-      <PreviewStats stats={stats} currency={config.currency} />
+      {!isUnitView && <PreviewStats stats={stats} currency={config.currency} />}
 
       <PreviewTooltip
         entity={hoveredEntity}

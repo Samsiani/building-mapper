@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
 import { useEditorStore } from '../../../stores/editorStore';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useToastStore } from '../../../stores/toastStore';
@@ -10,6 +11,7 @@ import { NODE_TYPES, canDrillInto } from '../../../utils/nodeTypes';
 import MasterplanSVG from './MasterplanSVG';
 import Toolbar from '../toolbar/Toolbar';
 import EntityTooltip from '../overlays/EntityTooltip';
+import ApartmentDetailCard from '../overlays/ApartmentDetailCard';
 import ZoomIndicator from '../overlays/ZoomIndicator';
 import Breadcrumbs from '../overlays/Breadcrumbs';
 import MiniMap from '../panels/MiniMap';
@@ -35,6 +37,10 @@ export default function CanvasArea({ containerRef, panZoom }) {
   const toast = useToastStore((s) => s.show);
 
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+
+  // Show specs table when drilled into an apartment/villa
+  const parentNode = nodes.find((n) => n.id === currentView.parentId);
+  const isUnitView = parentNode && NODE_TYPES[parentNode.type]?.hasStatus;
 
   const cursorClass = `cursor-${activeTool}${panZoom.isPanning ? ' panning' : ''}`;
 
@@ -185,6 +191,10 @@ export default function CanvasArea({ containerRef, panZoom }) {
       <ZoomIndicator zoom={panZoom.zoom} />
       <MiniMap zoom={panZoom.zoom} />
       <LayersPanel />
+
+      <AnimatePresence>
+        {isUnitView && <ApartmentDetailCard />}
+      </AnimatePresence>
 
       {isSelecting && selRect && <SelectionRectangle rect={selRect} svgRef={svgRef} />}
     </div>

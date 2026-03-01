@@ -4,6 +4,7 @@ import { useProjectStore } from '../../../stores/projectStore';
 import { NODE_TYPES, getNodeColors, canDrillInto } from '../../../utils/nodeTypes';
 import { STATUS } from '../../../utils/constants';
 import { formatPrice } from '../../../utils/formatPrice';
+import { useNodeStats } from '../../../hooks/useNodeStats';
 
 const EntityTooltip = memo(function EntityTooltip({ position, containerRef }) {
   const hoveredNodeId = useEditorStore((s) => s.hoveredNodeId);
@@ -11,6 +12,7 @@ const EntityTooltip = memo(function EntityTooltip({ position, containerRef }) {
   const currency = useProjectStore((s) => s.projectConfig.currency);
   const tooltipRef = useRef(null);
   const [clamped, setClamped] = useState({ x: 0, y: 0 });
+  const stats = useNodeStats(hoveredNodeId);
 
   useLayoutEffect(() => {
     if (!tooltipRef.current || !containerRef.current || !hoveredNodeId) return;
@@ -66,9 +68,8 @@ const EntityTooltip = memo(function EntityTooltip({ position, containerRef }) {
     );
   }
 
-  // Non-status nodes — show name, type, child count
+  // Non-status nodes — show name, type, aggregated stats
   const colors = getNodeColors(node);
-  const childCount = nodes.filter((n) => n.parentId === node.id).length;
   const isDrillable = canDrillInto(node.type);
 
   return (
@@ -79,9 +80,22 @@ const EntityTooltip = memo(function EntityTooltip({ position, containerRef }) {
           <span className="ett-name">{node.name}</span>
           <span className="ett-type" style={{ color: colors.color }}>{typeDef.label}</span>
         </div>
-        {childCount > 0 && (
+        {stats.total > 0 && (
+          <div className="ett-stats">
+            <span className="ett-stats-total">{stats.total} Unit{stats.total !== 1 ? 's' : ''}</span>
+            <div className="ett-stats-row">
+              {Object.entries(stats.byStatus).map(([key, count]) => (
+                <span key={key} className="ett-stats-item">
+                  <span className="ett-stats-dot" style={{ background: STATUS[key]?.color }} />
+                  {count}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {node.completionDate && (
           <div className="ett-row">
-            <span>{childCount} child{childCount !== 1 ? 'ren' : ''}</span>
+            <span>Completion: {node.completionDate}</span>
           </div>
         )}
         {isDrillable && <div className="ett-hint">Click to enter</div>}

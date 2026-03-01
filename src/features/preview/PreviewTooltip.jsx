@@ -1,7 +1,8 @@
-import { useRef, useLayoutEffect, useState } from 'react';
+import { useRef, useLayoutEffect, useState, useMemo } from 'react';
 import { NODE_TYPES, getNodeColors, canDrillInto } from '../../utils/nodeTypes';
 import { STATUS } from '../../utils/constants';
 import { formatPrice } from '../../utils/formatPrice';
+import { computeNodeStats } from '../../hooks/useNodeStats';
 
 export default function PreviewTooltip({ entity, nodes, position, currency }) {
   const tooltipRef = useRef(null);
@@ -20,6 +21,12 @@ export default function PreviewTooltip({ entity, nodes, position, currency }) {
     if (tx < 12) tx = 12;
     setClamped({ x: tx, y: ty });
   }, [position, entity]);
+
+  // Must call useMemo unconditionally (hooks rules)
+  const stats = useMemo(
+    () => (nodes && entity) ? computeNodeStats(nodes, entity.id) : { total: 0, byStatus: {} },
+    [nodes, entity?.id]
+  );
 
   if (!entity) return null;
 
@@ -58,9 +65,8 @@ export default function PreviewTooltip({ entity, nodes, position, currency }) {
     );
   }
 
-  // Non-status entities — show name + type + child count
+  // Non-status entities — show name + type + aggregated stats
   const colors = getNodeColors(entity);
-  const childCount = nodes ? nodes.filter((n) => n.parentId === entity.id).length : 0;
   const isDrillable = canDrillInto(entity.type);
 
   return (
@@ -74,9 +80,22 @@ export default function PreviewTooltip({ entity, nodes, position, currency }) {
         {entity.description && (
           <div className="pvtt-desc">{entity.description}</div>
         )}
-        {childCount > 0 && (
+        {stats.total > 0 && (
+          <div className="pvtt-stats">
+            <span className="pvtt-stats-total">{stats.total} Unit{stats.total !== 1 ? 's' : ''}</span>
+            <div className="pvtt-stats-row">
+              {Object.entries(stats.byStatus).map(([key, count]) => (
+                <span key={key} className="pvtt-stats-item">
+                  <span className="pvtt-stats-dot" style={{ background: STATUS[key]?.color }} />
+                  {count}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {entity.completionDate && (
           <div className="pvtt-row">
-            <span>{childCount} child{childCount !== 1 ? 'ren' : ''}</span>
+            <span>Completion: {entity.completionDate}</span>
           </div>
         )}
         {isDrillable && <div className="pvtt-hint">Click to explore</div>}

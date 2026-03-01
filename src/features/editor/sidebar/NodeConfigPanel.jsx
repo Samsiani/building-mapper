@@ -2,8 +2,12 @@ import { memo, useCallback, useMemo } from 'react';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useEditorStore } from '../../../stores/editorStore';
 import { NODE_TYPES } from '../../../utils/nodeTypes';
-import { STATUS } from '../../../utils/constants';
+import { STATUS, ORIENTATIONS } from '../../../utils/constants';
 import FloatingInput from '../../../components/ui/FloatingInput';
+import FloatingSelect from '../../../components/ui/FloatingSelect';
+import Checkbox from '../../../components/ui/Checkbox';
+import StatusSegmentedControl from '../../../components/ui/StatusSegmentedControl';
+import RoomSchemaRepeater from '../../../components/ui/RoomSchemaRepeater';
 import ImageUpload from '../../../components/ui/ImageUpload';
 
 const NodeConfigPanel = memo(function NodeConfigPanel() {
@@ -34,6 +38,27 @@ const NodeConfigPanel = memo(function NodeConfigPanel() {
     [updateNode, currentView.parentId]
   );
 
+  const handleFloatChange = useCallback(
+    (key) => (e) => {
+      updateNode(currentView.parentId, { [key]: parseFloat(e.target.value) || 0 });
+    },
+    [updateNode, currentView.parentId]
+  );
+
+  const handleCheckboxChange = useCallback(
+    (key) => (e) => {
+      updateNode(currentView.parentId, { [key]: e.target.checked });
+    },
+    [updateNode, currentView.parentId]
+  );
+
+  const handleDirectChange = useCallback(
+    (key, val) => {
+      updateNode(currentView.parentId, { [key]: val });
+    },
+    [updateNode, currentView.parentId]
+  );
+
   const handleImageChange = useCallback(
     (image) => {
       updateNode(currentView.parentId, { backgroundImage: image });
@@ -43,14 +68,25 @@ const NodeConfigPanel = memo(function NodeConfigPanel() {
 
   if (!parentNode || !typeDef) return null;
 
+  const statusDef = typeDef.hasStatus ? (STATUS[parentNode.status] || STATUS.for_sale) : null;
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
         <h3 className="text-sm font-bold tracking-tight">{typeDef.label} Settings</h3>
-        <span
-          className="w-2.5 h-2.5 rounded-full"
-          style={{ background: typeDef.color || 'var(--text-tertiary)' }}
-        />
+        {statusDef ? (
+          <span
+            className="text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+            style={{ color: statusDef.color, background: `color-mix(in srgb, ${statusDef.color} 14%, transparent)` }}
+          >
+            {statusDef.label}
+          </span>
+        ) : (
+          <span
+            className="w-2.5 h-2.5 rounded-full"
+            style={{ background: typeDef.color || 'var(--text-tertiary)' }}
+          />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3.5">
@@ -67,11 +103,22 @@ const NodeConfigPanel = memo(function NodeConfigPanel() {
           />
         )}
 
+        {(parentNode.type === 'phase' || parentNode.type === 'villa') && (
+          <FloatingInput
+            label="Completion Date" id="cfg-node-compdate"
+            value={parentNode.completionDate || ''} onChange={handleChange('completionDate')}
+          />
+        )}
+
         {parentNode.type === 'building' && (
           <>
             <FloatingInput
               label="Description" id="cfg-node-desc"
               value={parentNode.description || ''} onChange={handleChange('description')}
+            />
+            <FloatingInput
+              label="Completion Date" id="cfg-node-compdate"
+              value={parentNode.completionDate || ''} onChange={handleChange('completionDate')}
             />
             <SectionTitle>Procedural Facade</SectionTitle>
             <div className="grid grid-cols-2 gap-2.5">
@@ -95,6 +142,72 @@ const NodeConfigPanel = memo(function NodeConfigPanel() {
             value={parentNode.floorNumber || 1} onChange={handleChange('floorNumber', 'number')}
             min="1"
           />
+        )}
+
+        {/* Apartment / Villa specs */}
+        {typeDef.hasStatus && (
+          <>
+            <SectionTitle>Specifications</SectionTitle>
+            <div className="grid grid-cols-2 gap-2.5">
+              <FloatingInput
+                label="Area (m²)" id="cfg-node-area" type="number"
+                value={parentNode.area || 0} min="0"
+                onChange={handleFloatChange('area')}
+              />
+              <FloatingInput
+                label="Price (€)" id="cfg-node-price" type="number"
+                value={parentNode.price || 0} min="0" step="1000"
+                onChange={handleFloatChange('price')}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2.5">
+              <FloatingInput
+                label="Rooms" id="cfg-node-rooms" type="number"
+                value={parentNode.rooms || 1} min="1" max="20"
+                onChange={handleChange('rooms', 'number')}
+              />
+              <FloatingSelect
+                label="Orientation" id="cfg-node-orient"
+                value={parentNode.orientation || 'North'} options={ORIENTATIONS}
+                onChange={handleChange('orientation')}
+              />
+            </div>
+            {parentNode.type === 'apartment' && (
+              <FloatingInput
+                label="Entrance" id="cfg-node-entrance" type="number"
+                value={parentNode.entrance || 1} min="1"
+                onChange={handleChange('entrance', 'number')}
+              />
+            )}
+            <Checkbox
+              label="Balcony"
+              checked={parentNode.balcony || false}
+              onChange={handleCheckboxChange('balcony')}
+            />
+            <div>
+              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wide mb-2 block">
+                Status
+              </label>
+              <StatusSegmentedControl
+                value={parentNode.status || 'for_sale'}
+                onChange={(status) => handleDirectChange('status', status)}
+              />
+            </div>
+            <div className="floating-input">
+              <textarea
+                id="cfg-node-notes" placeholder=" " rows="3"
+                value={parentNode.notes || ''}
+                onChange={handleChange('notes')}
+              />
+              <label htmlFor="cfg-node-notes">Notes</label>
+            </div>
+            {parentNode.type === 'apartment' && (
+              <RoomSchemaRepeater
+                value={parentNode.roomSchema || []}
+                onChange={(rs) => handleDirectChange('roomSchema', rs)}
+              />
+            )}
+          </>
         )}
 
         {typeDef.hasBackgroundImage && (

@@ -10,11 +10,11 @@ const SidebarBrand = memo(function SidebarBrand() {
 
   return (
     <div className="px-5 py-4 border-b border-[var(--border)] flex items-center gap-2.5">
-      <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-gradient-to-br from-[var(--accent)] to-[#6366f1] flex items-center justify-center text-white">
+      <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-gradient-to-br from-[var(--accent)] to-[var(--gold)] flex items-center justify-center text-white">
         <Building2 size={16} />
       </div>
       <div className="flex-1 min-w-0">
-        <h2 className="text-sm font-bold tracking-tight truncate">Masterplan</h2>
+        <h2 className="text-sm font-bold tracking-tight truncate" style={{ fontFamily: 'var(--font-display)' }}>Masterplan</h2>
         <span className="text-[11px] text-[var(--text-tertiary)] font-medium">Interactive Editor</span>
       </div>
       <button

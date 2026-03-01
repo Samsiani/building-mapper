@@ -10,6 +10,7 @@ import FloatingSelect from '../../../components/ui/FloatingSelect';
 import Checkbox from '../../../components/ui/Checkbox';
 import StatusSegmentedControl from '../../../components/ui/StatusSegmentedControl';
 import ImageUpload from '../../../components/ui/ImageUpload';
+import RoomSchemaRepeater from '../../../components/ui/RoomSchemaRepeater';
 import Button from '../../../components/ui/Button';
 
 const NodeCreatePanel = memo(function NodeCreatePanel() {
@@ -39,7 +40,7 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
     name: '', description: '', area: '', price: '', rooms: 1,
     balcony: false, orientation: 'North', status: 'for_sale', notes: '',
     floorNumber: '', floors: 6, unitsPerFloor: 4, backgroundImage: null,
-    roomType: 'living', entrance: 1,
+    roomType: 'living', entrance: 1, completionDate: '', roomSchema: [],
   });
 
   const typeDef = selectedType ? NODE_TYPES[selectedType] : null;
@@ -76,14 +77,20 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
       data.description = form.description;
     }
 
+    if (selectedType === 'phase') {
+      data.completionDate = form.completionDate;
+    }
+
     if (selectedType === 'villa') {
       data.description = form.description;
+      data.completionDate = form.completionDate;
     }
 
     if (selectedType === 'building') {
       data.description = form.description;
       data.floors = parseInt(form.floors) || 6;
       data.unitsPerFloor = parseInt(form.unitsPerFloor) || 4;
+      data.completionDate = form.completionDate;
     }
 
     if (selectedType === 'floor') {
@@ -92,6 +99,7 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
 
     if (selectedType === 'apartment') {
       data.entrance = parseInt(form.entrance) || 1;
+      data.roomSchema = form.roomSchema || [];
     }
 
     if (selectedType === 'room') {
@@ -179,6 +187,13 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
+                {selectedType === 'phase' && (
+                  <FloatingInput
+                    label="Completion Date" id="f-node-compdate"
+                    value={form.completionDate}
+                    onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
+                  />
+                )}
                 <ImageUpload
                   value={form.backgroundImage}
                   onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
@@ -193,6 +208,11 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
                   label="Description" id="f-node-desc"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                />
+                <FloatingInput
+                  label="Completion Date" id="f-node-compdate"
+                  value={form.completionDate}
+                  onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
                 />
                 <div className="grid grid-cols-2 gap-2.5">
                   <FloatingInput
@@ -284,6 +304,11 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
                       value={form.description}
                       onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                     />
+                    <FloatingInput
+                      label="Completion Date" id="f-node-compdate"
+                      value={form.completionDate}
+                      onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
+                    />
                     <ImageUpload
                       value={form.backgroundImage}
                       onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
@@ -295,11 +320,17 @@ const NodeCreatePanel = memo(function NodeCreatePanel() {
             )}
 
             {selectedType === 'apartment' && (
-              <FloatingInput
-                label="Entrance" id="f-node-entrance" type="number"
-                value={form.entrance} min="1"
-                onChange={(e) => setForm((f) => ({ ...f, entrance: e.target.value }))}
-              />
+              <>
+                <FloatingInput
+                  label="Entrance" id="f-node-entrance" type="number"
+                  value={form.entrance} min="1"
+                  onChange={(e) => setForm((f) => ({ ...f, entrance: e.target.value }))}
+                />
+                <RoomSchemaRepeater
+                  value={form.roomSchema}
+                  onChange={(rs) => setForm((f) => ({ ...f, roomSchema: rs }))}
+                />
+              </>
             )}
 
             {selectedType === 'room' && (

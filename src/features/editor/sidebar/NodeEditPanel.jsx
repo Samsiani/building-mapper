@@ -10,6 +10,7 @@ import FloatingSelect from '../../../components/ui/FloatingSelect';
 import Checkbox from '../../../components/ui/Checkbox';
 import StatusSegmentedControl from '../../../components/ui/StatusSegmentedControl';
 import ImageUpload from '../../../components/ui/ImageUpload';
+import RoomSchemaRepeater from '../../../components/ui/RoomSchemaRepeater';
 import Button from '../../../components/ui/Button';
 import ConfirmButton from '../../../components/ui/ConfirmButton';
 
@@ -43,6 +44,8 @@ const NodeEditPanel = memo(function NodeEditPanel() {
         backgroundImage: node.backgroundImage || null,
         roomType: node.roomType || 'living',
         entrance: node.entrance || 1,
+        completionDate: node.completionDate || '',
+        roomSchema: node.roomSchema || [],
       });
     }
   }, [node]);
@@ -59,14 +62,20 @@ const NodeEditPanel = memo(function NodeEditPanel() {
       data.description = form.description;
     }
 
+    if (node.type === 'phase') {
+      data.completionDate = form.completionDate;
+    }
+
     if (node.type === 'villa') {
       data.description = form.description;
+      data.completionDate = form.completionDate;
     }
 
     if (node.type === 'building') {
       data.description = form.description;
       data.floors = parseInt(form.floors) || 6;
       data.unitsPerFloor = parseInt(form.unitsPerFloor) || 4;
+      data.completionDate = form.completionDate;
     }
 
     if (node.type === 'floor') {
@@ -85,6 +94,7 @@ const NodeEditPanel = memo(function NodeEditPanel() {
 
     if (node.type === 'apartment') {
       data.entrance = parseInt(form.entrance) || 1;
+      data.roomSchema = form.roomSchema || [];
     }
 
     if (node.type === 'room') {
@@ -135,6 +145,13 @@ const NodeEditPanel = memo(function NodeEditPanel() {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
             />
+            {node.type === 'phase' && (
+              <FloatingInput
+                label="Completion Date" id="f-edit-compdate"
+                value={form.completionDate}
+                onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
+              />
+            )}
             <ImageUpload
               value={form.backgroundImage}
               onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
@@ -149,6 +166,11 @@ const NodeEditPanel = memo(function NodeEditPanel() {
               label="Description" id="f-edit-desc"
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+            <FloatingInput
+              label="Completion Date" id="f-edit-compdate"
+              value={form.completionDate}
+              onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
             />
             <div className="grid grid-cols-2 gap-2.5">
               <FloatingInput
@@ -240,6 +262,11 @@ const NodeEditPanel = memo(function NodeEditPanel() {
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
+                <FloatingInput
+                  label="Completion Date" id="f-edit-compdate"
+                  value={form.completionDate}
+                  onChange={(e) => setForm((f) => ({ ...f, completionDate: e.target.value }))}
+                />
                 <ImageUpload
                   value={form.backgroundImage}
                   onChange={(img) => setForm((f) => ({ ...f, backgroundImage: img }))}
@@ -251,11 +278,17 @@ const NodeEditPanel = memo(function NodeEditPanel() {
         )}
 
         {node.type === 'apartment' && (
-          <FloatingInput
-            label="Entrance" id="f-edit-entrance" type="number"
-            value={form.entrance} min="1"
-            onChange={(e) => setForm((f) => ({ ...f, entrance: e.target.value }))}
-          />
+          <>
+            <FloatingInput
+              label="Entrance" id="f-edit-entrance" type="number"
+              value={form.entrance} min="1"
+              onChange={(e) => setForm((f) => ({ ...f, entrance: e.target.value }))}
+            />
+            <RoomSchemaRepeater
+              value={form.roomSchema}
+              onChange={(rs) => setForm((f) => ({ ...f, roomSchema: rs }))}
+            />
+          </>
         )}
 
         {node.type === 'room' && (

@@ -1,43 +1,18 @@
-import { memo, useMemo, useCallback } from 'react';
+import { memo, useMemo } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { useProjectStore } from '../../../stores/projectStore';
 import { useEditorStore } from '../../../stores/editorStore';
-import { NODE_TYPES, canDrillInto } from '../../../utils/nodeTypes';
+import { NODE_TYPES } from '../../../utils/nodeTypes';
 import { STATUS } from '../../../utils/constants';
 import { formatPrice } from '../../../utils/formatPrice';
+import { useNodeStats } from '../../../hooks/useNodeStats';
 
 const AnalyticsPanel = memo(function AnalyticsPanel() {
   const nodes = useProjectStore((s) => s.nodes);
   const config = useProjectStore((s) => s.projectConfig);
   const currentView = useEditorStore((s) => s.currentView);
 
-  // Collect all apartment-type descendants under the current view
-  const getApartmentDescendants = useCallback((parentId) => {
-    const result = [];
-    const queue = [parentId];
-    while (queue.length > 0) {
-      const current = queue.shift();
-      for (const n of nodes) {
-        if (n.parentId === current) {
-          if (NODE_TYPES[n.type]?.hasStatus) result.push(n);
-          if (canDrillInto(n.type)) queue.push(n.id);
-        }
-      }
-    }
-    return result;
-  }, [nodes]);
-
-  const apartments = useMemo(() => {
-    if (currentView.parentId === null) {
-      // Root: all apartments in the project
-      return nodes.filter((n) => NODE_TYPES[n.type]?.hasStatus);
-    }
-    // Direct hasStatus children + deeper descendants
-    const directChildren = nodes.filter((n) => n.parentId === currentView.parentId);
-    const direct = directChildren.filter((n) => NODE_TYPES[n.type]?.hasStatus);
-    const deeper = directChildren.filter((n) => canDrillInto(n.type)).flatMap((n) => getApartmentDescendants(n.id));
-    return [...direct, ...deeper];
-  }, [nodes, currentView.parentId, getApartmentDescendants]);
+  const { units: apartments } = useNodeStats(currentView.parentId);
 
   // Scope label from parent node
   const scopeLabel = useMemo(() => {

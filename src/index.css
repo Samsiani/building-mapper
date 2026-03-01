@@ -20,6 +20,11 @@
   --accent-dim: rgba(129, 140, 248, 0.15);
   --accent-glow: rgba(129, 140, 248, 0.4);
 
+  --gold: #d4a843;
+  --gold-light: #e8c96a;
+  --gold-dim: rgba(212, 168, 67, 0.15);
+  --gold-glow: rgba(212, 168, 67, 0.3);
+
   --green: #22c55e;
   --red: #ef4444;
   --yellow: #f59e0b;
@@ -276,7 +281,7 @@ html, body, #root {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.14); }
+::-webkit-scrollbar-thumb:hover { background: rgba(129, 140, 248, 0.22); }
 
 /* ─── Selection ─── */
 ::selection {
@@ -399,6 +404,19 @@ html, body, #root {
     0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
+.pv-canvas-area--with-sidebar .pv-canvas-wrapper {
+  border-radius: 12px 0 0 12px;
+  border-right: none;
+  box-shadow: none;
+}
+
+.pv-canvas-area--with-sidebar {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 20px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+}
+
 .pv-canvas-svg {
   display: block;
   width: 100%;
@@ -500,7 +518,10 @@ html, body, #root {
   padding: 0 12px 4px;
   font-size: 16px;
   font-weight: 800;
-  color: var(--pv-accent);
+  background: linear-gradient(135deg, var(--pv-gold), var(--pv-gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.02em;
 }
 
@@ -535,6 +556,42 @@ html, body, #root {
   color: var(--pv-text-muted);
 }
 
+/* ─── Tooltip Stats — Preview (light) ─── */
+.pvtt-stats {
+  padding: 4px 12px 6px;
+}
+
+.pvtt-stats-total {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pv-text);
+  margin-bottom: 4px;
+}
+
+.pvtt-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pvtt-stats-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pv-text-secondary);
+}
+
+.pvtt-stats-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
 /* ─── Tooltips — Editor (dark) ─── */
 .ett {
   position: absolute;
@@ -547,10 +604,10 @@ html, body, #root {
   background: rgba(10, 10, 18, 0.92);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.03);
   min-width: 150px;
   max-width: 230px;
 }
@@ -633,6 +690,42 @@ html, body, #root {
   padding: 4px 10px 6px;
   font-size: 10px;
   color: rgba(255, 255, 255, 0.35);
+}
+
+/* ─── Tooltip Stats — Editor (dark) ─── */
+.ett-stats {
+  padding: 4px 10px 6px;
+}
+
+.ett-stats-total {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+  margin-bottom: 4px;
+}
+
+.ett-stats-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ett-stats-item {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.ett-stats-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* ─── Bottom stats bar ─── */
@@ -729,6 +822,7 @@ html, body, #root {
   background: var(--pv-accent);
   color: white;
   border-radius: 6px;
+  font-family: var(--font-display);
   font-size: 12px;
   font-weight: 600;
 }
@@ -978,7 +1072,7 @@ html, body, #root {
 }
 
 .udm-title {
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: 22px;
   font-weight: 800;
   color: var(--pv-text);
@@ -1041,7 +1135,10 @@ html, body, #root {
   font-family: var(--font-sans);
   font-size: 28px;
   font-weight: 800;
-  color: var(--pv-accent);
+  background: linear-gradient(135deg, var(--pv-gold), var(--pv-gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.03em;
   line-height: 1;
 }
@@ -1209,6 +1306,378 @@ html, body, #root {
   font-size: 11.5px;
   opacity: 0.7;
   margin-top: 2px;
+}
+
+/* ─── Canvas area with sidebar variant ─── */
+.pv-canvas-area--with-sidebar {
+  flex-direction: row;
+  gap: 0;
+  align-items: stretch;
+}
+
+.pv-canvas-area--with-sidebar .pv-canvas-wrapper {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Preview Sidebar (unit detail panel) ─── */
+.pvs {
+  width: 350px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--pv-surface);
+  border: 1px solid var(--pv-border);
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.pvs-header {
+  padding: 20px 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pvs-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--pv-text);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.pvs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 4px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 8%, transparent);
+  width: fit-content;
+}
+
+.pvs-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Price */
+.pvs-price-block {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--pv-border);
+}
+
+.pvs-price {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--pv-gold), var(--pv-gold-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.pvs-price-sqm {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pv-text-muted);
+}
+
+/* Specs grid */
+.pvs-specs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--pv-border);
+}
+
+.pvs-spec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 8px 12px;
+  border-radius: 10px;
+  background: #f8f9fa;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: border-color 200ms;
+}
+
+.pvs-spec:hover {
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.pvs-spec-icon {
+  color: var(--pv-accent);
+  opacity: 0.65;
+}
+
+.pvs-spec-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--pv-text);
+  line-height: 1;
+}
+
+.pvs-spec-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--pv-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* Sections (rooms, notes) */
+.pvs-section {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--pv-border);
+}
+
+.pvs-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pv-text-muted);
+  margin: 0 0 10px;
+}
+
+.pvs-section-title svg {
+  opacity: 0.6;
+}
+
+/* Room list */
+.pvs-room-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.pvs-room-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 8px;
+  transition: background 150ms;
+}
+
+.pvs-room-row:hover {
+  background: #f8f9fa;
+}
+
+.pvs-room-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--pv-text-secondary);
+}
+
+.pvs-room-area {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pv-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Notes */
+.pvs-notes-text {
+  font-size: 13px;
+  color: var(--pv-text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+  margin: 0;
+}
+
+/* Spacer */
+.pvs-spacer {
+  flex: 1;
+}
+
+/* CTA */
+.pvs-cta {
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--pv-border);
+}
+
+.pvs-cta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 10px;
+  background: var(--pv-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 200ms;
+  box-shadow: 0 2px 8px rgba(26, 54, 93, 0.2);
+}
+
+.pvs-cta-btn:hover {
+  background: var(--pv-accent-light);
+  box-shadow: 0 4px 16px rgba(26, 54, 93, 0.25);
+  transform: translateY(-1px);
+}
+
+.pvs-cta-arrow {
+  margin-left: auto;
+  opacity: 0.7;
+  transition: transform 200ms;
+}
+
+.pvs-cta-btn:hover .pvs-cta-arrow {
+  transform: translateX(3px);
+  opacity: 1;
+}
+
+.pvs-cta-phone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid var(--pv-border);
+  color: var(--pv-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 200ms;
+}
+
+.pvs-cta-phone:hover {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--pv-text);
+  background: #f8f9fa;
+}
+
+/* ─── Apartment Detail Card (specs table on canvas) ─── */
+.adc {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  z-index: 80;
+  width: 240px;
+  background: rgba(10, 10, 18, 0.90);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.adc-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.adc-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.adc-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.90);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.adc-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.adc-td-label {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.40);
+  white-space: nowrap;
+}
+
+.adc-td-value {
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.80);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.adc-status-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c);
+}
+
+.adc-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+.adc-rooms {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 4px;
+}
+
+.adc-rooms-title {
+  padding: 4px 12px 2px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.30);
+}
+
+.adc-notes {
+  padding: 6px 12px 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* ─── Responsive ─── */
