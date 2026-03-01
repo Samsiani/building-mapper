@@ -1,0 +1,335 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+/* ─── Theme Custom Properties ─── */
+:root {
+  /* Editor Dark Theme */
+  --bg-primary: #0a0a0f;
+  --bg-secondary: #12121a;
+  --bg-tertiary: #1a1a26;
+  --bg-elevated: #1e1e2e;
+  --bg-glass: rgba(18, 18, 26, 0.8);
+  --bg-glass-hover: rgba(26, 26, 38, 0.9);
+
+  --text-primary: #e4e4ef;
+  --text-secondary: #8b8ba0;
+  --text-tertiary: #5a5a72;
+  --text-accent: #818cf8;
+
+  --accent: #818cf8;
+  --accent-dim: rgba(129, 140, 248, 0.15);
+  --accent-glow: rgba(129, 140, 248, 0.4);
+
+  --green: #22c55e;
+  --red: #ef4444;
+  --yellow: #f59e0b;
+  --blue: #3b82f6;
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  --border-focus: rgba(129, 140, 248, 0.4);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  --font-display: 'Playfair Display', Georgia, serif;
+
+  --sidebar-width: 340px;
+  --toolbar-height: 48px;
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 350ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-smooth: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Preview Light Theme */
+  --pv-bg: #fafaf7;
+  --pv-surface: #ffffff;
+  --pv-text: #1a1a2e;
+  --pv-text-secondary: #6b7280;
+  --pv-text-muted: #9ca3af;
+  --pv-accent: #1a365d;
+  --pv-accent-light: #2c5282;
+  --pv-gold: #b8860b;
+  --pv-gold-light: #d4a843;
+  --pv-border: rgba(0, 0, 0, 0.08);
+  --pv-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --pv-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --pv-shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.12);
+  --pv-radius: 12px;
+}
+
+/* ─── Reset ─── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── SVG Polygon Styles ─── */
+.unit-polygon {
+  cursor: pointer;
+  transition: fill var(--transition-fast), stroke-width var(--transition-fast);
+}
+
+.unit-polygon.selected {
+  filter: drop-shadow(0 0 6px var(--accent-glow)) drop-shadow(0 0 12px rgba(129, 140, 248, 0.2));
+  stroke: var(--accent) !important;
+  stroke-width: 0.6;
+  stroke-dasharray: 2 1;
+  animation: marchingAnts 12s linear infinite;
+}
+
+@keyframes marchingAnts {
+  to { stroke-dashoffset: -60; }
+}
+
+/* ─── Drawing ─── */
+.drawing-preview {
+  pointer-events: none;
+  animation: drawPulse 2s ease-in-out infinite;
+}
+
+@keyframes drawPulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+.draw-dot {
+  cursor: pointer;
+  transition: r var(--transition-fast);
+}
+
+.draw-dot:hover {
+  r: 1.4;
+}
+
+/* ─── Edit Handles ─── */
+.edit-handle {
+  cursor: grab;
+  transition: r var(--transition-fast), fill var(--transition-fast);
+  filter: drop-shadow(0 0 3px rgba(129, 140, 248, 0.5));
+}
+
+.edit-handle:hover {
+  r: 1.4;
+  fill: #a5b4fc;
+}
+
+.edit-handle:active {
+  cursor: grabbing;
+}
+
+/* ─── Floating Label ─── */
+.floating-input {
+  position: relative;
+}
+
+.floating-input input,
+.floating-input textarea,
+.floating-input select {
+  width: 100%;
+  padding: 14px 12px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.floating-input textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.floating-input select {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 32px;
+}
+
+.floating-select::after {
+  content: '';
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-tertiary);
+  pointer-events: none;
+}
+
+.floating-input input:focus,
+.floating-input textarea:focus,
+.floating-input select:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.08);
+}
+
+.floating-input label {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 13px;
+  color: var(--text-tertiary);
+  pointer-events: none;
+  transition: all var(--transition-fast);
+}
+
+.floating-input textarea ~ label {
+  top: 14px;
+  transform: none;
+}
+
+.floating-input input:focus ~ label,
+.floating-input input:not(:placeholder-shown) ~ label,
+.floating-input textarea:focus ~ label,
+.floating-input textarea:not(:placeholder-shown) ~ label,
+.floating-input select ~ label {
+  top: 5px;
+  transform: none;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-accent);
+  letter-spacing: 0.03em;
+}
+
+/* ─── Status Segmented Control ─── */
+.status-control {
+  display: flex;
+  position: relative;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  padding: 3px;
+  gap: 2px;
+}
+
+.status-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  z-index: 1;
+  transition: color var(--transition-fast);
+}
+
+.status-btn.active {
+  color: var(--text-primary);
+}
+
+.status-btn:hover:not(.active) {
+  color: var(--text-primary);
+}
+
+.status-pill {
+  position: absolute;
+  top: 3px;
+  height: calc(100% - 6px);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  transition: left var(--transition-spring), width var(--transition-spring);
+  z-index: 0;
+}
+
+/* ─── Cursors ─── */
+.cursor-select { cursor: default; }
+.cursor-pen { cursor: crosshair; }
+.cursor-edit { cursor: crosshair; }
+.cursor-hand { cursor: grab; }
+.cursor-hand.panning { cursor: grabbing; }
+.cursor-measure { cursor: crosshair; }
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* ─── Selection ─── */
+::selection {
+  background: var(--accent-dim);
+  color: var(--text-primary);
+}
+
+/* ─── Animations ─── */
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* ─── Toast ─── */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.9); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toastOut {
+  to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+}
+
+/* ─── Preview polygon ─── */
+.pv-polygon {
+  cursor: pointer;
+  transition: fill 150ms, stroke-width 150ms;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 900px) {
+  :root {
+    --sidebar-width: 280px;
+  }
+}
