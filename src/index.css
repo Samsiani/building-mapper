@@ -408,11 +408,10 @@ html, body, #root {
 }
 
 .pv-canvas-wrapper {
+  max-width: 95%;
+  max-height: 95%;
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: var(--pv-surface);
   border: 1px solid var(--pv-border);
   border-radius: 12px;
@@ -423,6 +422,10 @@ html, body, #root {
 }
 
 .pv-canvas-area--with-sidebar .pv-canvas-wrapper {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  max-height: none;
   border-radius: 12px 0 0 12px;
   border-right: none;
   box-shadow: none;
@@ -437,11 +440,8 @@ html, body, #root {
 
 .pv-canvas-svg {
   display: block;
-  max-width: 95%;
-  max-height: 95%;
   width: 100%;
   height: 100%;
-  object-fit: contain;
 }
 
 /* ─── SVG Delete Button ─── */
@@ -1362,11 +1362,6 @@ html, body, #root {
   flex-direction: row;
   gap: 0;
   align-items: stretch;
-}
-
-.pv-canvas-area--with-sidebar .pv-canvas-wrapper {
-  flex: 1;
-  min-width: 0;
 }
 
 /* ─── Preview Sidebar (unit detail panel) ─── */
