@@ -4,6 +4,7 @@ import { useEditorStore } from '../../../stores/editorStore';
 import { useToastStore } from '../../../stores/toastStore';
 import { NODE_TYPES, getNodeColors, canDrillInto } from '../../../utils/nodeTypes';
 import { useSVGCoordinates } from '../../../hooks/useSVGCoordinates';
+import { useConfirmStore } from '../../../stores/confirmStore';
 
 const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
   const currentView = useEditorStore((s) => s.currentView);
@@ -86,12 +87,19 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
   }, []);
 
   const handleDelete = useCallback(
-    (e, entity) => {
+    async (e, entity) => {
       e.stopPropagation();
       e.preventDefault();
       const typeDef = NODE_TYPES[entity.type];
       const name = entity.name || typeDef?.label || 'Item';
-      if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
+
+      const confirmed = await useConfirmStore.getState().confirm({
+        title: `Delete "${name}"?`,
+        message: 'This action cannot be undone.',
+        confirmLabel: 'Delete',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
 
       useProjectStore.getState().removeNode(entity.id);
       useEditorStore.getState().clearHoveredNode();

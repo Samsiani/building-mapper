@@ -4,6 +4,7 @@ import { useProjectStore } from '../stores/projectStore';
 import { useToastStore } from '../stores/toastStore';
 import { useCommandStore } from '../stores/commandStore';
 import { NODE_TYPES } from '../utils/nodeTypes';
+import { useConfirmStore } from '../stores/confirmStore';
 
 export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
   useEffect(() => {
@@ -106,9 +107,18 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
           e.preventDefault();
           const node = useProjectStore.getState().nodes.find((n) => n.id === selectedNodeId);
           const name = node?.name || NODE_TYPES[node?.type]?.label || 'Item';
-          useProjectStore.getState().removeNode(selectedNodeId);
-          deselectNode();
-          toast(`${name} deleted`, 'info');
+          useConfirmStore.getState().confirm({
+            title: `Delete "${name}"?`,
+            message: 'This action cannot be undone.',
+            confirmLabel: 'Delete',
+            variant: 'danger',
+          }).then((confirmed) => {
+            if (confirmed) {
+              useProjectStore.getState().removeNode(selectedNodeId);
+              useEditorStore.getState().deselectNode();
+              useToastStore.getState().show(`${name} deleted`, 'info');
+            }
+          });
         }
         return;
       }

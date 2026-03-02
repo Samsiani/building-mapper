@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import EditorLayout from './features/editor/EditorLayout';
 import ToastContainer from './components/ui/ToastContainer';
+import ConfirmDialog from './components/ui/ConfirmDialog';
 import CommandPalette from './features/command-palette/CommandPalette';
 
 const PreviewPage = lazy(() => import('./features/preview/PreviewPage'));
@@ -21,6 +22,7 @@ export default function App() {
         />
       </Routes>
       <ToastContainer />
+      <ConfirmDialog />
       <CommandPalette />
     </BrowserRouter>
   );
