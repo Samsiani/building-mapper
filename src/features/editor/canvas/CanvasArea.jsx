@@ -261,7 +261,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
   return (
     <div
       ref={containerRef}
-      className={`flex-1 relative overflow-hidden bg-[var(--bg-primary)] ${cursorClass}`}
+      className={`flex-1 relative overflow-hidden bg-[var(--bg-primary)] flex items-center justify-center ${cursorClass}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -271,7 +271,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
       }}
     >
       <div
-        className="w-full h-full origin-center"
+        className="w-[95%] h-[95%] origin-center"
         style={{ transform: panZoom.transform }}
       >
         <MasterplanSVG
