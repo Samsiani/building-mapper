@@ -8,7 +8,7 @@ import MeasurementLayer from './MeasurementLayer';
 import AnnotationLayer from './AnnotationLayer';
 import GridOverlay from './GridOverlay';
 
-const MasterplanSVG = forwardRef(function MasterplanSVG({ onClick, onDoubleClick, measurement }, ref) {
+const MasterplanSVG = forwardRef(function MasterplanSVG({ onClick, onDoubleClick, measurement, isOverlay }, ref) {
   const editorTheme = useEditorStore((s) => s.editorTheme);
   const snapEnabled = useEditorStore((s) => s.snapEnabled);
 
@@ -16,7 +16,8 @@ const MasterplanSVG = forwardRef(function MasterplanSVG({ onClick, onDoubleClick
     <svg
       ref={ref}
       viewBox="0 0 100 100"
-      className="w-full h-full block"
+      preserveAspectRatio={isOverlay ? 'none' : undefined}
+      className={isOverlay ? 'canvas-svg-overlay' : 'w-full h-full block'}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
     >

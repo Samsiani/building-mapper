@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { renderBuilding } from '../../utils/buildingRenderer';
-import { NODE_TYPES, getNodeColors, canDrillInto } from '../../utils/nodeTypes';
+import { NODE_TYPES, getNodeColors } from '../../utils/nodeTypes';
 import PreviewPolygon from './PreviewPolygon';
 
 export default function PreviewBuilding({ entities, backgroundImage, proceduralConfig, onHover, onLeave, onClick, onDelete }) {
@@ -9,12 +9,6 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
   const svgRef = useRef(null);
   const [hoveredId, setHoveredId] = useState(null);
   const leaveTimerRef = useRef(null);
-
-  const clearHoverNow = useCallback(() => {
-    clearTimeout(leaveTimerRef.current);
-    setHoveredId(null);
-    onLeave();
-  }, [onLeave]);
 
   const setHoverEntity = useCallback((id, entity, pos) => {
     clearTimeout(leaveTimerRef.current);
@@ -46,9 +40,7 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
     e.stopPropagation();
     e.preventDefault();
     clearTimeout(leaveTimerRef.current);
-    if (onDelete) {
-      onDelete(entity, { x: e.clientX, y: e.clientY });
-    }
+    if (onDelete) onDelete(entity, { x: e.clientX, y: e.clientY });
     setHoveredId(null);
   }, [onDelete]);
 
@@ -59,45 +51,13 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
     return { x: Math.max(...xs) - 2, y: Math.min(...ys) + 2 };
   }, []);
 
-  return (
-    <svg
-      ref={svgRef}
-      viewBox="0 0 100 100"
-      preserveAspectRatio="xMidYMid slice"
-      className="pv-canvas-svg"
-      onContextMenu={(e) => e.preventDefault()}
-    >
-      <defs ref={defsRef} />
-
-      {backgroundImage && (
-        <image
-          href={backgroundImage}
-          x="0" y="0"
-          width="100" height="100"
-          preserveAspectRatio="xMidYMid slice"
-        />
-      )}
-
-      <g ref={layerRef} />
-
-      {!backgroundImage && !proceduralConfig && (
-        <g opacity="0.04">
-          {Array.from({ length: 11 }, (_, i) => (
-            <line key={`h${i}`} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="#888" strokeWidth="0.15" />
-          ))}
-          {Array.from({ length: 11 }, (_, i) => (
-            <line key={`v${i}`} x1={i * 10} y1="0" x2={i * 10} y2="100" stroke="#888" strokeWidth="0.15" />
-          ))}
-        </g>
-      )}
-
+  // Shared SVG content: polygons, labels, delete button
+  const overlayContent = (
+    <>
       <g className="preview-polygon-layer">
         {entities.map((entity) => {
           if (!entity.points || entity.points.length < 3) return null;
-
           const typeDef = NODE_TYPES[entity.type];
-
-          // Status-bearing entities use PreviewPolygon (colored by status)
           if (typeDef?.hasStatus) {
             return (
               <PreviewPolygon
@@ -109,8 +69,6 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
               />
             );
           }
-
-          // Other entities — use type colors
           const colors = getNodeColors(entity);
           return (
             <PreviewEntityPolygon
@@ -125,7 +83,6 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
         })}
       </g>
 
-      {/* Entity labels for non-status entities */}
       {entities.map((entity) => {
         if (!entity.points || entity.points.length < 3) return null;
         const typeDef = NODE_TYPES[entity.type];
@@ -146,7 +103,6 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
         );
       })}
 
-      {/* Delete button */}
       {hoveredId && (() => {
         const entity = entities.find((e) => e.id === hoveredId);
         if (!entity) return null;
@@ -168,6 +124,48 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
           </g>
         );
       })()}
+    </>
+  );
+
+  // With background image: <img> sizes the container, SVG overlays on top
+  if (backgroundImage) {
+    return (
+      <div className="canvas-img-sizer">
+        <img src={backgroundImage} className="canvas-bg-img" alt="" draggable={false} />
+        <svg
+          ref={svgRef}
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          className="canvas-svg-overlay"
+          onContextMenu={(e) => e.preventDefault()}
+        >
+          {overlayContent}
+        </svg>
+      </div>
+    );
+  }
+
+  // No background: full SVG with procedural building or grid
+  return (
+    <svg
+      ref={svgRef}
+      viewBox="0 0 100 100"
+      className="pv-canvas-svg"
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <defs ref={defsRef} />
+      <g ref={layerRef} />
+      {!proceduralConfig && (
+        <g opacity="0.04">
+          {Array.from({ length: 11 }, (_, i) => (
+            <line key={`h${i}`} x1="0" y1={i * 10} x2="100" y2={i * 10} stroke="#888" strokeWidth="0.15" />
+          ))}
+          {Array.from({ length: 11 }, (_, i) => (
+            <line key={`v${i}`} x1={i * 10} y1="0" x2={i * 10} y2="100" stroke="#888" strokeWidth="0.15" />
+          ))}
+        </g>
+      )}
+      {overlayContent}
     </svg>
   );
 }

@@ -51,16 +51,6 @@ const BackgroundLayer = memo(function BackgroundLayer({ theme }) {
   return (
     <>
       <defs ref={defsRef} />
-      {backgroundImage && (
-        <image
-          href={backgroundImage}
-          x="0" y="0"
-          width="100" height="100"
-          preserveAspectRatio="xMidYMid slice"
-          opacity={visible ? 1 : 0.15}
-          style={{ transition: 'opacity 300ms' }}
-        />
-      )}
       <g ref={layerRef} opacity={visible ? 1 : 0} style={{ transition: 'opacity 300ms' }} />
       {!backgroundImage && !proceduralConfig && (
         <g opacity="0.08">
