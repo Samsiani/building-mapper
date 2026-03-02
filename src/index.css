@@ -401,29 +401,25 @@ html, body, #root {
 .pv-canvas-area {
   flex: 1;
   min-height: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 2.5%;
 }
 
 .pv-canvas-wrapper {
-  display: grid;
-  place-items: center;
-  overflow: hidden;
+  width: 100%;
+  height: 100%;
   background: var(--pv-surface);
   border: 1px solid var(--pv-border);
   border-radius: 12px;
+  overflow: hidden;
   box-shadow:
     0 1px 3px rgba(0, 0, 0, 0.04),
     0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .pv-canvas-area--with-sidebar .pv-canvas-wrapper {
-  flex: 1;
-  min-width: 0;
-  display: grid;
-  place-items: center;
-  padding: 24px;
   border-radius: 12px 0 0 12px;
   border-right: none;
   box-shadow: none;
@@ -438,30 +434,6 @@ html, body, #root {
 
 .pv-canvas-svg {
   display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* ─── Image-based canvas sizer (editor & preview) ─── */
-.canvas-img-sizer {
-  position: relative;
-  max-width: 100%;
-  max-height: 100%;
-  display: inline-flex;
-}
-
-.canvas-bg-img {
-  display: block;
-  max-width: 100%;
-  max-height: 100%;
-  width: auto;
-  height: auto;
-  object-fit: contain;
-}
-
-.canvas-svg-overlay {
-  position: absolute;
-  inset: 0;
   width: 100%;
   height: 100%;
 }
@@ -1381,10 +1353,14 @@ html, body, #root {
 
 /* ─── Canvas area with sidebar variant ─── */
 .pv-canvas-area--with-sidebar {
-  display: flex;
   flex-direction: row;
   gap: 0;
   align-items: stretch;
+}
+
+.pv-canvas-area--with-sidebar .pv-canvas-wrapper {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ─── Preview Sidebar (unit detail panel) ─── */

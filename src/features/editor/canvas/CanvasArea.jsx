@@ -30,8 +30,6 @@ export default function CanvasArea({ containerRef, panZoom }) {
 
   // Get entities for rubber band — only hasStatus nodes (apartments) at current level
   const nodes = useProjectStore((s) => s.nodes);
-  const projectConfig = useProjectStore((s) => s.projectConfig);
-  const bgVisible = useEditorStore((s) => s.buildingLayerVisible);
   const rubberBandEntities = nodes.filter(
     (n) => n.parentId === currentView.parentId && NODE_TYPES[n.type]?.hasStatus
   );
@@ -45,14 +43,6 @@ export default function CanvasArea({ containerRef, panZoom }) {
   // Show specs table when drilled into an apartment/villa
   const parentNode = nodes.find((n) => n.id === currentView.parentId);
   const isUnitView = parentNode && NODE_TYPES[parentNode.type]?.hasStatus;
-
-  // Background image (for external <img> element)
-  let editorBgImage = null;
-  if (currentView.parentId === null) {
-    editorBgImage = projectConfig.siteBackgroundImage || null;
-  } else if (parentNode?.backgroundImage) {
-    editorBgImage = parentNode.backgroundImage;
-  }
 
   const cursorClass = `cursor-${activeTool}${panZoom.isPanning ? ' panning' : ''}`;
 
@@ -271,7 +261,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
   return (
     <div
       ref={containerRef}
-      className={`flex-1 relative overflow-hidden bg-[var(--bg-primary)] flex items-center justify-center ${cursorClass}`}
+      className={`flex-1 relative overflow-hidden bg-[var(--bg-primary)] ${cursorClass}`}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -281,34 +271,15 @@ export default function CanvasArea({ containerRef, panZoom }) {
       }}
     >
       <div
-        className="w-[95%] h-[95%] origin-center grid place-items-center overflow-hidden"
+        className="w-full h-full origin-center"
         style={{ transform: panZoom.transform }}
       >
-        {editorBgImage ? (
-          <div className="canvas-img-sizer">
-            <img
-              src={editorBgImage}
-              className="canvas-bg-img"
-              alt=""
-              draggable={false}
-              style={{ opacity: bgVisible ? 1 : 0.15, transition: 'opacity 300ms' }}
-            />
-            <MasterplanSVG
-              ref={svgRef}
-              isOverlay
-              onClick={handleSVGClick}
-              onDoubleClick={handleDoubleClick}
-              measurement={measurement}
-            />
-          </div>
-        ) : (
-          <MasterplanSVG
-            ref={svgRef}
-            onClick={handleSVGClick}
-            onDoubleClick={handleDoubleClick}
-            measurement={measurement}
-          />
-        )}
+        <MasterplanSVG
+          ref={svgRef}
+          onClick={handleSVGClick}
+          onDoubleClick={handleDoubleClick}
+          measurement={measurement}
+        />
       </div>
 
       <Toolbar panZoom={panZoom} measurement={measurement} />
