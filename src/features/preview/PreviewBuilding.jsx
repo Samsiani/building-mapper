@@ -63,6 +63,7 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
     <svg
       ref={svgRef}
       viewBox="0 0 100 100"
+      preserveAspectRatio="xMidYMid slice"
       className="pv-canvas-svg"
       onContextMenu={(e) => e.preventDefault()}
     >
@@ -73,7 +74,7 @@ export default function PreviewBuilding({ entities, backgroundImage, proceduralC
           href={backgroundImage}
           x="0" y="0"
           width="100" height="100"
-          preserveAspectRatio="xMidYMid meet"
+          preserveAspectRatio="xMidYMid slice"
         />
       )}
 
