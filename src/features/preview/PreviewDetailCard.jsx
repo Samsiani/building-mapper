@@ -107,9 +107,6 @@ const PreviewDetailCard = memo(function PreviewDetailCard({ node, currency, conf
         </div>
       )}
 
-      {/* Spacer */}
-      <div className="pvs-spacer" />
-
       {/* CTA */}
       {(node.status === 'for_sale' || node.status === 'for_rent') && mailto && (
         <div className="pvs-cta">
