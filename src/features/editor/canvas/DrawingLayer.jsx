@@ -10,6 +10,7 @@ const DrawingLayer = memo(function DrawingLayer({ svgRef }) {
   const activeTool = useEditorStore((s) => s.activeTool);
   const rectStart = useEditorStore((s) => s.rectStart);
   const cloneDrag = useEditorStore((s) => s.cloneDrag);
+  const pendingPoints = useEditorStore((s) => s.pendingPoints);
   const [guidePt, setGuidePt] = useState(null);
   const [snapInfo, setSnapInfo] = useState(null);
 
@@ -69,8 +70,9 @@ const DrawingLayer = memo(function DrawingLayer({ svgRef }) {
   const showPen = activeTool === 'pen' && drawingPoints.length > 0;
   const showRect = activeTool === 'rect' && rectStart;
   const showClone = !!cloneDrag;
+  const showPending = pendingPoints && pendingPoints.length >= 3;
 
-  if (!showPen && !showRect && !showClone && drawingPoints.length === 0) return null;
+  if (!showPen && !showRect && !showClone && !showPending && drawingPoints.length === 0) return null;
 
   const pointsStr = drawingPoints.map((p) => `${p.x},${p.y}`).join(' ');
   const last = drawingPoints[drawingPoints.length - 1];
@@ -182,6 +184,18 @@ const DrawingLayer = memo(function DrawingLayer({ svgRef }) {
           strokeWidth="0.3"
           strokeDasharray="1,0.5"
           opacity="0.7"
+          style={{ pointerEvents: 'none' }}
+        />
+      )}
+
+      {/* Pending creation polygon — visible while filling sidebar form */}
+      {showPending && (
+        <polygon
+          points={pendingPoints.map((p) => `${p.x},${p.y}`).join(' ')}
+          fill="rgba(99, 102, 241, 0.2)"
+          stroke="#818cf8"
+          strokeWidth="0.3"
+          strokeDasharray="0.8,0.4"
           style={{ pointerEvents: 'none' }}
         />
       )}

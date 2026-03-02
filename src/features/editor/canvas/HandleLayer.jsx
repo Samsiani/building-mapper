@@ -16,21 +16,26 @@ function EditHandlesInner({ svgRef, nodeId }) {
 
   return (
     <g className="handle-layer">
-      {/* Midpoint ghost circles — appear on hover */}
+      {/* Midpoint handles — fat hitbox pattern */}
       {midpoints.map((mp, i) => (
-        <circle
+        <g
           key={`mid-${i}`}
-          cx={mp.x}
-          cy={mp.y}
-          r={0.7}
-          fill="none"
-          stroke="#818cf8"
-          strokeWidth="0.2"
-          strokeDasharray="0.4,0.3"
           className="midpoint-handle"
           onClick={(e) => onMidpointClick(e, mp.afterIndex)}
           style={{ cursor: 'copy' }}
-        />
+        >
+          {/* Fat invisible hitbox */}
+          <circle cx={mp.x} cy={mp.y} r={2.5} fill="transparent" stroke="transparent" />
+          {/* Visual circle */}
+          <circle
+            cx={mp.x} cy={mp.y} r={0.7}
+            fill="none"
+            stroke="#818cf8"
+            strokeWidth="0.2"
+            strokeDasharray="0.4,0.3"
+            style={{ pointerEvents: 'none' }}
+          />
+        </g>
       ))}
 
       {/* Vertex handles */}

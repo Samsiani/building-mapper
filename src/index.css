@@ -143,12 +143,16 @@ html, body, #root {
 
 /* ─── Midpoint Handles ─── */
 .midpoint-handle {
-  opacity: 0;
+  opacity: 0.4;
   transition: opacity 150ms;
 }
 
 .midpoint-handle:hover {
   opacity: 1;
+}
+
+.midpoint-handle:hover circle:nth-child(2) {
+  fill: rgba(129, 140, 248, 0.15);
 }
 
 /* ─── Floating Label ─── */
