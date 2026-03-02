@@ -50,7 +50,18 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
           useCommandStore.getState().close();
           return;
         }
-        const { rectStart, cloneDrag } = useEditorStore.getState();
+        const { rectStart, cloneDrag, moveDrag } = useEditorStore.getState();
+        if (moveDrag) {
+          // Restore original points and cancel
+          useProjectStore.setState((state) => ({
+            nodes: state.nodes.map((n) =>
+              n.id === moveDrag.nodeId ? { ...n, points: moveDrag.originalPoints } : n
+            ),
+          }));
+          useEditorStore.getState().clearMoveDrag();
+          toast('Move cancelled', 'info', 2000);
+          return;
+        }
         if (cloneDrag) {
           useEditorStore.getState().clearCloneDrag();
           toast('Clone cancelled', 'info', 2000);

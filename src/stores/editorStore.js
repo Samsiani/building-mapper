@@ -15,6 +15,7 @@ export const useEditorStore = create(
       drawingPoints: [],
       rectStart: null,
       cloneDrag: null,
+      moveDrag: null, // { nodeId, startPt, originalPoints }
       snapEnabled: false,
       snapSize: 2,
       buildingLayerVisible: true,
@@ -124,6 +125,7 @@ export const useEditorStore = create(
           }
           if (tool !== 'select') {
             updates.cloneDrag = null;
+            updates.moveDrag = null;
           }
           return updates;
         }),
@@ -168,6 +170,10 @@ export const useEditorStore = create(
       // Clone drag
       setCloneDrag: (data) => set({ cloneDrag: data }),
       clearCloneDrag: () => set({ cloneDrag: null }),
+
+      // Move drag
+      setMoveDrag: (data) => set({ moveDrag: data }),
+      clearMoveDrag: () => set({ moveDrag: null }),
     }),
     { name: 'EditorStore' }
   )

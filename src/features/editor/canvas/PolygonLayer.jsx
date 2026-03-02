@@ -23,13 +23,20 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
 
   const handlePolygonMouseDown = useCallback(
     (e, entity) => {
-      if (activeTool === 'select' && e.altKey && selectedNodeId === entity.id) {
-        e.stopPropagation();
-        e.preventDefault();
-        const startPt = screenToSVG(e.clientX, e.clientY);
-        useEditorStore.getState().setCloneDrag({
-          sourceNodeId: entity.id,
+      if (activeTool !== 'select' || selectedNodeId !== entity.id) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const startPt = screenToSVG(e.clientX, e.clientY);
+
+      if (e.altKey) {
+        // Alt+drag → clone
+        useEditorStore.getState().setCloneDrag({ sourceNodeId: entity.id, startPt });
+      } else {
+        // Plain drag → move
+        useEditorStore.getState().setMoveDrag({
+          nodeId: entity.id,
           startPt,
+          originalPoints: entity.points.map((p) => ({ ...p })),
         });
       }
     },

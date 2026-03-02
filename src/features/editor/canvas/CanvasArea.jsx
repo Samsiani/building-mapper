@@ -74,6 +74,24 @@ export default function CanvasArea({ containerRef, panZoom }) {
       if (isSelecting) {
         updateSelection(e.clientX, e.clientY);
       }
+
+      // Live move drag — update node points directly for instant feedback
+      const { moveDrag } = useEditorStore.getState();
+      if (moveDrag) {
+        const currentPt = screenToSVG(e.clientX, e.clientY);
+        const dx = currentPt.x - moveDrag.startPt.x;
+        const dy = currentPt.y - moveDrag.startPt.y;
+        const newPoints = moveDrag.originalPoints.map((p) => ({
+          x: Math.round((p.x + dx) * 100) / 100,
+          y: Math.round((p.y + dy) * 100) / 100,
+        }));
+        useProjectStore.setState((state) => ({
+          nodes: state.nodes.map((n) =>
+            n.id === moveDrag.nodeId ? { ...n, points: newPoints } : n
+          ),
+        }));
+      }
+
       if (hoveredNodeId) {
         const rect = containerRef.current?.getBoundingClientRect();
         if (rect) {
@@ -84,7 +102,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
         }
       }
     },
-    [panZoom, isSelecting, updateSelection, hoveredNodeId, containerRef]
+    [panZoom, isSelecting, updateSelection, hoveredNodeId, containerRef, screenToSVG]
   );
 
   const handleMouseUp = useCallback(
@@ -101,8 +119,38 @@ export default function CanvasArea({ containerRef, panZoom }) {
         return;
       }
 
+      // Move finalize — commit with snap + single history snapshot
+      const { moveDrag, cloneDrag, snapEnabled, snapSize, currentView: cv } = useEditorStore.getState();
+      if (moveDrag) {
+        const endPt = screenToSVG(e.clientX, e.clientY);
+        let dx = endPt.x - moveDrag.startPt.x;
+        let dy = endPt.y - moveDrag.startPt.y;
+
+        // Snap: apply grid snap to the first point's final position, derive delta from that
+        if (snapEnabled) {
+          const firstOrig = moveDrag.originalPoints[0];
+          const rawFirst = { x: firstOrig.x + dx, y: firstOrig.y + dy };
+          const snappedFirst = applySnap(rawFirst, {
+            snapEnabled, snapSize,
+            siblingNodes: useProjectStore.getState().nodes.filter(
+              (n) => n.parentId === cv.parentId && n.points?.length >= 2 && n.id !== moveDrag.nodeId
+            ),
+            excludeNodeId: moveDrag.nodeId,
+          }).point;
+          dx = snappedFirst.x - firstOrig.x;
+          dy = snappedFirst.y - firstOrig.y;
+        }
+
+        const finalPoints = moveDrag.originalPoints.map((p) => ({
+          x: Math.round((p.x + dx) * 100) / 100,
+          y: Math.round((p.y + dy) * 100) / 100,
+        }));
+        useProjectStore.getState().updateNodePoints(moveDrag.nodeId, finalPoints);
+        useEditorStore.getState().clearMoveDrag();
+        return;
+      }
+
       // Clone finalize
-      const { cloneDrag } = useEditorStore.getState();
       if (cloneDrag) {
         const endPt = screenToSVG(e.clientX, e.clientY);
         const dx = endPt.x - cloneDrag.startPt.x;
