@@ -4,6 +4,35 @@ import { useToastStore } from '../stores/toastStore';
 import { getAllowedChildTypes, NODE_TYPES } from '../utils/nodeTypes';
 import { useProjectStore } from '../stores/projectStore';
 
+/**
+ * Shared helper: resolve parent type hierarchy and trigger creation.
+ */
+function _resolveCreation(points, parentId) {
+  let parentType = null;
+  let grandparentType = null;
+  if (parentId !== null) {
+    const nodes = useProjectStore.getState().nodes;
+    const parentNode = nodes.find((n) => n.id === parentId);
+    parentType = parentNode?.type || null;
+    if (parentNode?.parentId != null) {
+      const grandparentNode = nodes.find((n) => n.id === parentNode.parentId);
+      grandparentType = grandparentNode?.type || null;
+    }
+  }
+
+  const allowedTypes = getAllowedChildTypes(parentType, grandparentType);
+
+  if (allowedTypes.length === 1) {
+    const type = allowedTypes[0];
+    useEditorStore.getState().setPendingCreation({ type, points, parentId });
+    const label = NODE_TYPES[type]?.label || type;
+    useToastStore.getState().show(`${label} polygon drawn — fill in the details`, 'info');
+  } else if (allowedTypes.length > 1) {
+    useEditorStore.getState().setPendingCreation({ type: null, points, parentId });
+    useToastStore.getState().show('Polygon drawn — choose entity type', 'info');
+  }
+}
+
 export function useDrawingTool() {
   const drawingPoints = useEditorStore((s) => s.drawingPoints);
   const setDrawingPoints = useEditorStore((s) => s.setDrawingPoints);
@@ -35,35 +64,18 @@ export function useDrawingTool() {
     const points = [...current];
     const parentId = currentView.parentId;
 
-    // Determine what type of parent we're inside
-    let parentType = null;
-    let grandparentType = null;
-    if (parentId !== null) {
-      const nodes = useProjectStore.getState().nodes;
-      const parentNode = nodes.find((n) => n.id === parentId);
-      parentType = parentNode?.type || null;
-      if (parentNode?.parentId != null) {
-        const grandparentNode = nodes.find((n) => n.id === parentNode.parentId);
-        grandparentType = grandparentNode?.type || null;
-      }
-    }
-
-    const allowedTypes = getAllowedChildTypes(parentType, grandparentType);
-
     setDrawingPoints([]);
-
-    if (allowedTypes.length === 1) {
-      // Auto-select the only allowed type
-      const type = allowedTypes[0];
-      useEditorStore.getState().setPendingCreation({ type, points, parentId });
-      const label = NODE_TYPES[type]?.label || type;
-      useToastStore.getState().show(`${label} polygon drawn — fill in the details`, 'info');
-    } else if (allowedTypes.length > 1) {
-      // Show type picker in sidebar (set type to null, sidebar will handle it)
-      useEditorStore.getState().setPendingCreation({ type: null, points, parentId });
-      useToastStore.getState().show('Polygon drawn — choose entity type', 'info');
-    }
+    _resolveCreation(points, parentId);
   }, [setDrawingPoints]);
+
+  const closePolygonWithPoints = useCallback((points) => {
+    if (points.length < 3) {
+      useToastStore.getState().show('Need at least 3 points to create a polygon', 'warning');
+      return;
+    }
+    const { currentView } = useEditorStore.getState();
+    _resolveCreation([...points], currentView.parentId);
+  }, []);
 
   const cancelDrawing = useCallback(() => {
     setDrawingPoints([]);
@@ -75,6 +87,7 @@ export function useDrawingTool() {
     addPoint,
     removeLastPoint,
     closePolygon,
+    closePolygonWithPoints,
     cancelDrawing,
     isDrawing: drawingPoints.length > 0,
   };

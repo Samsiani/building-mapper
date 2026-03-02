@@ -13,6 +13,8 @@ export const useEditorStore = create(
       pendingCreationType: null, // any node type string
       pendingCreationParentId: null,
       drawingPoints: [],
+      rectStart: null,
+      cloneDrag: null,
       snapEnabled: false,
       snapSize: 2,
       buildingLayerVisible: true,
@@ -117,6 +119,12 @@ export const useEditorStore = create(
           if (state.activeTool === 'pen' && tool !== 'pen') {
             updates.drawingPoints = [];
           }
+          if (state.activeTool === 'rect' && tool !== 'rect') {
+            updates.rectStart = null;
+          }
+          if (tool !== 'select') {
+            updates.cloneDrag = null;
+          }
           return updates;
         }),
 
@@ -152,6 +160,14 @@ export const useEditorStore = create(
       toggleLayersPanel: () => set((s) => ({ layersPanelOpen: !s.layersPanelOpen })),
       toggleEditorTheme: () =>
         set((s) => ({ editorTheme: s.editorTheme === 'dark' ? 'light' : 'dark' })),
+
+      // Rectangle tool
+      setRectStart: (pt) => set({ rectStart: pt }),
+      clearRectStart: () => set({ rectStart: null }),
+
+      // Clone drag
+      setCloneDrag: (data) => set({ cloneDrag: data }),
+      clearCloneDrag: () => set({ cloneDrag: null }),
     }),
     { name: 'EditorStore' }
   )

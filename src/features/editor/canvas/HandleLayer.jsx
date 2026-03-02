@@ -12,10 +12,28 @@ const HandleLayer = memo(function HandleLayer({ svgRef }) {
 });
 
 function EditHandlesInner({ svgRef, nodeId }) {
-  const { handles, onHandleMouseDown } = useEditHandles(svgRef, nodeId);
+  const { handles, midpoints, onHandleMouseDown, onMidpointClick, onHandleDoubleClick } = useEditHandles(svgRef, nodeId);
 
   return (
     <g className="handle-layer">
+      {/* Midpoint ghost circles — appear on hover */}
+      {midpoints.map((mp, i) => (
+        <circle
+          key={`mid-${i}`}
+          cx={mp.x}
+          cy={mp.y}
+          r={0.7}
+          fill="none"
+          stroke="#818cf8"
+          strokeWidth="0.2"
+          strokeDasharray="0.4,0.3"
+          className="midpoint-handle"
+          onClick={(e) => onMidpointClick(e, mp.afterIndex)}
+          style={{ cursor: 'copy' }}
+        />
+      ))}
+
+      {/* Vertex handles */}
       {handles.map((p, i) => (
         <circle
           key={i}
@@ -27,6 +45,7 @@ function EditHandlesInner({ svgRef, nodeId }) {
           strokeWidth="0.25"
           className="edit-handle"
           onMouseDown={(e) => onHandleMouseDown(e, i)}
+          onDoubleClick={(e) => onHandleDoubleClick(e, i)}
         />
       ))}
     </g>

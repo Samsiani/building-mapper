@@ -50,6 +50,17 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
           useCommandStore.getState().close();
           return;
         }
+        const { rectStart, cloneDrag } = useEditorStore.getState();
+        if (cloneDrag) {
+          useEditorStore.getState().clearCloneDrag();
+          toast('Clone cancelled', 'info', 2000);
+          return;
+        }
+        if (rectStart) {
+          useEditorStore.getState().clearRectStart();
+          toast('Rectangle cancelled', 'info', 2000);
+          return;
+        }
         if (drawingPoints.length > 0) {
           setDrawingPoints([]);
           toast('Drawing cancelled', 'info', 2000);
@@ -93,7 +104,7 @@ export function useKeyboardShortcuts({ zoomIn, zoomOut, resetView }) {
 
       // Tool shortcuts
       const key = e.key.toUpperCase();
-      const toolMap = { V: 'select', P: 'pen', E: 'edit', H: 'hand', M: 'measure' };
+      const toolMap = { V: 'select', P: 'pen', R: 'rect', E: 'edit', H: 'hand', M: 'measure' };
       if (toolMap[key]) {
         e.preventDefault();
         setActiveTool(toolMap[key]);

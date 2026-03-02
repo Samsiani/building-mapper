@@ -1,7 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import {
   MousePointer, Pen, Edit3, Hand, ZoomIn, ZoomOut,
-  Undo2, Redo2, Grid3x3, Download, Upload, Ruler, ArrowLeft
+  Undo2, Redo2, Grid3x3, Download, Upload, Ruler, ArrowLeft, Square
 } from 'lucide-react';
 import { useEditorStore } from '../../../stores/editorStore';
 import { useProjectStore } from '../../../stores/projectStore';
@@ -12,6 +12,7 @@ import { exportJSON, importJSON } from '../../../utils/exportImport';
 const TOOL_ICONS = {
   select: MousePointer,
   pen: Pen,
+  rect: Square,
   edit: Edit3,
   hand: Hand,
   measure: Ruler,
@@ -20,12 +21,13 @@ const TOOL_ICONS = {
 const TOOL_KEYS = {
   select: 'V',
   pen: 'P',
+  rect: 'R',
   edit: 'E',
   hand: 'H',
   measure: 'M',
 };
 
-const TOOL_ORDER = ['select', 'pen', 'edit', 'hand', 'measure'];
+const TOOL_ORDER = ['select', 'pen', 'rect', 'edit', 'hand', 'measure'];
 
 const Toolbar = memo(function Toolbar({ panZoom, measurement }) {
   const activeTool = useEditorStore((s) => s.activeTool);

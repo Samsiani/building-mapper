@@ -8,6 +8,8 @@ import { useDrawingTool } from '../../../hooks/useDrawingTool';
 import { useRubberBand } from '../../../hooks/useRubberBand';
 import { useMeasurement } from '../../../hooks/useMeasurement';
 import { NODE_TYPES, canDrillInto } from '../../../utils/nodeTypes';
+import { applySnap } from '../../../utils/snapPoint';
+import { constrainAngle } from '../../../utils/angleConstraint';
 import MasterplanSVG from './MasterplanSVG';
 import Toolbar from '../toolbar/Toolbar';
 import EntityTooltip from '../overlays/EntityTooltip';
@@ -24,7 +26,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
   const hoveredNodeId = useEditorStore((s) => s.hoveredNodeId);
   const currentView = useEditorStore((s) => s.currentView);
   const { screenToSVG } = useSVGCoordinates(svgRef);
-  const { addPoint, closePolygon, isDrawing, drawingPoints } = useDrawingTool();
+  const { addPoint, closePolygon, closePolygonWithPoints, isDrawing, drawingPoints } = useDrawingTool();
 
   // Get entities for rubber band — only hasStatus nodes (apartments) at current level
   const nodes = useProjectStore((s) => s.nodes);
@@ -85,27 +87,71 @@ export default function CanvasArea({ containerRef, panZoom }) {
     [panZoom, isSelecting, updateSelection, hoveredNodeId, containerRef]
   );
 
-  const handleMouseUp = useCallback(() => {
-    if (panZoom.isPanning) {
-      panZoom.endPan();
-      return;
-    }
-    if (isSelecting) {
-      const ids = endSelection();
-      if (ids.length > 0) {
-        useEditorStore.getState().setMultiSelect(ids);
+  const handleMouseUp = useCallback(
+    (e) => {
+      if (panZoom.isPanning) {
+        panZoom.endPan();
+        return;
       }
-    }
-  }, [panZoom, isSelecting, endSelection]);
+      if (isSelecting) {
+        const ids = endSelection();
+        if (ids.length > 0) {
+          useEditorStore.getState().setMultiSelect(ids);
+        }
+        return;
+      }
+
+      // Clone finalize
+      const { cloneDrag } = useEditorStore.getState();
+      if (cloneDrag) {
+        const endPt = screenToSVG(e.clientX, e.clientY);
+        const dx = endPt.x - cloneDrag.startPt.x;
+        const dy = endPt.y - cloneDrag.startPt.y;
+        const dragDist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dragDist > 1) {
+          const allNodes = useProjectStore.getState().nodes;
+          const source = allNodes.find((n) => n.id === cloneDrag.sourceNodeId);
+          if (source) {
+            const offsetPoints = source.points.map((p) => ({
+              x: Math.round((p.x + dx) * 100) / 100,
+              y: Math.round((p.y + dy) * 100) / 100,
+            }));
+            const cloneData = {
+              ...source,
+              name: source.name ? `${source.name} (copy)` : 'Copy',
+              points: offsetPoints,
+            };
+            delete cloneData.id;
+            const newNode = useProjectStore.getState().createNode(cloneData);
+            if (newNode) {
+              useEditorStore.getState().selectNode(newNode.id);
+            }
+            toast('Clone created', 'success', 2000);
+          }
+        }
+        useEditorStore.getState().clearCloneDrag();
+      }
+    },
+    [panZoom, isSelecting, endSelection, screenToSVG, toast]
+  );
 
   const handleSVGClick = useCallback(
     (e) => {
       if (activeTool === 'pen') {
-        const pt = screenToSVG(e.clientX, e.clientY);
+        const { snapEnabled, snapSize, currentView: cv } = useEditorStore.getState();
+        const siblingNodes = useProjectStore.getState().nodes.filter(
+          (n) => n.parentId === cv.parentId && n.points?.length >= 2
+        );
+        let pt = screenToSVG(e.clientX, e.clientY);
+        if (e.shiftKey && drawingPoints.length > 0) {
+          pt = constrainAngle(pt, drawingPoints[drawingPoints.length - 1]);
+        }
+        pt = applySnap(pt, { snapEnabled, snapSize, siblingNodes }).point;
         if (drawingPoints.length >= 3) {
           const first = drawingPoints[0];
-          const dist = Math.sqrt(Math.pow(pt.x - first.x, 2) + Math.pow(pt.y - first.y, 2));
-          if (dist < 2) {
+          const d = Math.sqrt(Math.pow(pt.x - first.x, 2) + Math.pow(pt.y - first.y, 2));
+          if (d < 2) {
             closePolygon();
             return;
           }
@@ -114,8 +160,36 @@ export default function CanvasArea({ containerRef, panZoom }) {
         return;
       }
 
+      if (activeTool === 'rect') {
+        const { snapEnabled, snapSize, rectStart, currentView: cv } = useEditorStore.getState();
+        const siblingNodes = useProjectStore.getState().nodes.filter(
+          (n) => n.parentId === cv.parentId && n.points?.length >= 2
+        );
+        let pt = screenToSVG(e.clientX, e.clientY);
+        pt = applySnap(pt, { snapEnabled, snapSize, siblingNodes }).point;
+        if (!rectStart) {
+          useEditorStore.getState().setRectStart(pt);
+        } else {
+          const s = rectStart;
+          const corners = [
+            { x: s.x, y: s.y },
+            { x: pt.x, y: s.y },
+            { x: pt.x, y: pt.y },
+            { x: s.x, y: pt.y },
+          ];
+          closePolygonWithPoints(corners);
+          useEditorStore.getState().clearRectStart();
+        }
+        return;
+      }
+
       if (activeTool === 'measure') {
-        const pt = screenToSVG(e.clientX, e.clientY);
+        const { snapEnabled, snapSize, currentView: cv } = useEditorStore.getState();
+        const siblingNodes = useProjectStore.getState().nodes.filter(
+          (n) => n.parentId === cv.parentId && n.points?.length >= 2
+        );
+        let pt = screenToSVG(e.clientX, e.clientY);
+        pt = applySnap(pt, { snapEnabled, snapSize, siblingNodes }).point;
         measurement.addPoint(pt);
         return;
       }
@@ -138,7 +212,7 @@ export default function CanvasArea({ containerRef, panZoom }) {
         }
       }
     },
-    [activeTool, screenToSVG, addPoint, closePolygon, drawingPoints, measurement]
+    [activeTool, screenToSVG, addPoint, closePolygon, closePolygonWithPoints, drawingPoints, measurement]
   );
 
   const handleDoubleClick = useCallback(() => {

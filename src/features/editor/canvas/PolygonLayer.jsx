@@ -3,6 +3,7 @@ import { useProjectStore } from '../../../stores/projectStore';
 import { useEditorStore } from '../../../stores/editorStore';
 import { useToastStore } from '../../../stores/toastStore';
 import { NODE_TYPES, getNodeColors, canDrillInto } from '../../../utils/nodeTypes';
+import { useSVGCoordinates } from '../../../hooks/useSVGCoordinates';
 
 const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
   const currentView = useEditorStore((s) => s.currentView);
@@ -12,16 +13,33 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
   const hoveredNodeId = useEditorStore((s) => s.hoveredNodeId);
   const activeTool = useEditorStore((s) => s.activeTool);
 
+  const { screenToSVG } = useSVGCoordinates(svgRef);
+
   // Children of the current view's parent
   const entities = useMemo(
     () => nodes.filter((n) => n.parentId === currentView.parentId),
     [nodes, currentView.parentId]
   );
 
+  const handlePolygonMouseDown = useCallback(
+    (e, entity) => {
+      if (activeTool === 'select' && e.altKey && selectedNodeId === entity.id) {
+        e.stopPropagation();
+        e.preventDefault();
+        const startPt = screenToSVG(e.clientX, e.clientY);
+        useEditorStore.getState().setCloneDrag({
+          sourceNodeId: entity.id,
+          startPt,
+        });
+      }
+    },
+    [activeTool, selectedNodeId, screenToSVG]
+  );
+
   const handleClick = useCallback(
     (e, entity) => {
       e.stopPropagation();
-      if (activeTool === 'pen' || activeTool === 'hand' || activeTool === 'measure') return;
+      if (activeTool === 'pen' || activeTool === 'hand' || activeTool === 'measure' || activeTool === 'rect') return;
 
       if (canDrillInto(entity.type)) {
         useEditorStore.getState().navigateInto(entity.id);
@@ -108,6 +126,7 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
             data-id={entity.id}
             data-type={entity.type}
             style={{ cursor: activeTool === 'select' ? 'pointer' : 'default' }}
+            onMouseDown={(e) => handlePolygonMouseDown(e, entity)}
             onMouseEnter={() => handleEnter(entity)}
             onMouseLeave={handleLeave}
             onClick={(e) => handleClick(e, entity)}

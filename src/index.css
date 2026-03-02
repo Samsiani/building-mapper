@@ -141,6 +141,16 @@ html, body, #root {
   cursor: grabbing;
 }
 
+/* ─── Midpoint Handles ─── */
+.midpoint-handle {
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.midpoint-handle:hover {
+  opacity: 1;
+}
+
 /* ─── Floating Label ─── */
 .floating-input {
   position: relative;
@@ -275,6 +285,7 @@ html, body, #root {
 .cursor-edit { cursor: crosshair; }
 .cursor-hand { cursor: grab; }
 .cursor-hand.panning { cursor: grabbing; }
+.cursor-rect { cursor: crosshair; }
 .cursor-measure { cursor: crosshair; }
 
 /* ─── Custom Scrollbar ─── */
