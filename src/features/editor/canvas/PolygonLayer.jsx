@@ -41,14 +41,11 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
       e.stopPropagation();
       if (activeTool === 'pen' || activeTool === 'hand' || activeTool === 'measure' || activeTool === 'rect') return;
 
-      if (canDrillInto(entity.type)) {
-        useEditorStore.getState().navigateInto(entity.id);
+      // Single click always selects — never drills down
+      if (e.shiftKey) {
+        useEditorStore.getState().toggleMultiSelect(entity.id);
       } else {
-        if (e.shiftKey) {
-          useEditorStore.getState().toggleMultiSelect(entity.id);
-        } else {
-          useEditorStore.getState().selectNode(entity.id);
-        }
+        useEditorStore.getState().selectNode(entity.id);
       }
     },
     [activeTool]
@@ -58,6 +55,7 @@ const PolygonLayer = memo(function PolygonLayer({ svgRef }) {
     (e, entity) => {
       e.stopPropagation();
       if (activeTool !== 'select') return;
+      // Double click drills into drillable nodes
       if (canDrillInto(entity.type)) {
         useEditorStore.getState().navigateInto(entity.id);
       }

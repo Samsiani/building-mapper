@@ -7,7 +7,7 @@ import { useSVGCoordinates } from '../../../hooks/useSVGCoordinates';
 import { useDrawingTool } from '../../../hooks/useDrawingTool';
 import { useRubberBand } from '../../../hooks/useRubberBand';
 import { useMeasurement } from '../../../hooks/useMeasurement';
-import { NODE_TYPES, canDrillInto } from '../../../utils/nodeTypes';
+import { NODE_TYPES } from '../../../utils/nodeTypes';
 import { applySnap } from '../../../utils/snapPoint';
 import { constrainAngle } from '../../../utils/angleConstraint';
 import MasterplanSVG from './MasterplanSVG';
@@ -194,19 +194,8 @@ export default function CanvasArea({ containerRef, panZoom }) {
         return;
       }
 
-      // Drill-down: click on drillable entity polygon with select tool
+      // Click on empty space = deselect (drill-down is double-click only, handled by PolygonLayer)
       if (activeTool === 'select') {
-        const polygonEl = e.target.closest('.entity-polygon');
-        if (polygonEl) {
-          const entityId = parseInt(polygonEl.dataset.id);
-          const entityType = polygonEl.dataset.type;
-          if (canDrillInto(entityType)) {
-            useEditorStore.getState().navigateInto(entityId);
-            return;
-          }
-        }
-
-        // Click on empty space = deselect
         if (!e.target.closest('.entity-polygon') && !e.target.closest('.edit-handle')) {
           useEditorStore.getState().deselectNode();
         }
